@@ -31,8 +31,9 @@ BufferedHTTPResponse.
 import time
 from urllib import quote
 
-from eventlet.green.httplib import (CONTINUE, HTTPConnection, HTTPMessage,
-                                    HTTPResponse, HTTPSConnection, _UNKNOWN)
+from keystone.common.environment.httplib import (CONTINUE, HTTPConnection,
+                                                 HTTPMessage, HTTPResponse,
+                                                 HTTPSConnection, _UNKNOWN)
 
 from keystone.common import logging
 

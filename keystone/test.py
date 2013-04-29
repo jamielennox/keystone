@@ -22,7 +22,6 @@ import subprocess
 import sys
 import time
 
-import eventlet
 import mox
 import nose.exc
 from paste import deploy
@@ -34,6 +33,7 @@ from keystone.common import kvs
 from keystone.common import logging
 from keystone.common import utils
 from keystone.common import wsgi
+from keystone.common.environment import Server
 from keystone import config
 from keystone import exception
 from keystone import identity
@@ -42,10 +42,6 @@ from keystone import policy
 from keystone import token
 from keystone import trust
 
-
-do_monkeypatch = not os.getenv('STANDARD_THREADS')
-eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
-                              thread=do_monkeypatch)
 
 LOG = logging.getLogger(__name__)
 ROOTDIR = os.path.dirname(os.path.abspath(os.curdir))
@@ -314,15 +310,14 @@ class TestCase(NoModule, unittest.TestCase):
     def serveapp(self, config, name=None, cert=None, key=None, ca=None,
                  cert_required=None, host="127.0.0.1", port=0):
         app = self.loadapp(config, name=name)
-        server = wsgi.Server(app, host, port)
+        server = Server(app, host, port, key='socket')
         if cert is not None and ca is not None and key is not None:
             server.set_ssl(certfile=cert, keyfile=key, ca_certs=ca,
                            cert_required=cert_required)
-        server.start(key='socket')
+        server.start()
 
         # Service catalog tests need to know the port we ran on.
-        port = server.socket_info['socket'][1]
-        self.opt(public_port=port, admin_port=port)
+        self.opt(public_port=server.port, admin_port=server.port)
         return server
 
     def client(self, app, *args, **kw):

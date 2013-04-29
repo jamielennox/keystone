@@ -24,7 +24,6 @@ Starting point for routing EC2 requests.
 
 from urlparse import urlparse
 
-from eventlet.green import httplib
 import webob.dec
 import webob.exc
 
@@ -32,6 +31,7 @@ from nova import flags
 from nova import utils
 from nova import wsgi
 
+from keystone.common.environment import httplib
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('keystone_ec2_url',

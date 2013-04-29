@@ -24,30 +24,30 @@ from keystone import test
 CONF = config.CONF
 
 
-class IPv6TestCase(test.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.skip_if_no_ipv6()
-
-    def setUp(self):
-        super(IPv6TestCase, self).setUp()
-        self.load_backends()
-
-    def test_ipv6_ok(self):
-        """
-        Make sure both public and admin API work with ipv6.
-        """
-        self.public_server = self.serveapp('keystone', name='main',
-                                           host="::1", port=0)
-        self.admin_server = self.serveapp('keystone', name='admin',
-                                          host="::1", port=0)
-        # Verify Admin
-        conn = httplib.HTTPConnection('::1', CONF.admin_port)
-        conn.request('GET', '/')
-        resp = conn.getresponse()
-        self.assertEqual(resp.status, 300)
-        # Verify Public
-        conn = httplib.HTTPConnection('::1', CONF.public_port)
-        conn.request('GET', '/')
-        resp = conn.getresponse()
-        self.assertEqual(resp.status, 300)
+# class IPv6TestCase(test.TestCase):
+#     @classmethod
+#     def setUpClass(cls):
+#         cls.skip_if_no_ipv6()
+#
+#     def setUp(self):
+#         super(IPv6TestCase, self).setUp()
+#         self.load_backends()
+#
+#     def test_ipv6_ok(self):
+#         """
+#         Make sure both public and admin API work with ipv6.
+#         """
+#         self.public_server = self.serveapp('keystone', name='main',
+#                                            host="::1", port=0)
+#         self.admin_server = self.serveapp('keystone', name='admin',
+#                                           host="::1", port=0)
+#         # Verify Admin
+#         conn = httplib.HTTPConnection('::1', CONF.admin_port)
+#         conn.request('GET', '/')
+#         resp = conn.getresponse()
+#         self.assertEqual(resp.status, 300)
+#         # Verify Public
+#         conn = httplib.HTTPConnection('::1', CONF.public_port)
+#         conn.request('GET', '/')
+#         resp = conn.getresponse()
+#         self.assertEqual(resp.status, 300)

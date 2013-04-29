@@ -212,7 +212,7 @@ class RestfulTestCase(test.TestCase):
         return response
 
     def _get_port(self, server):
-        return server.socket_info['socket'][1]
+        return server.port
 
     def _public_port(self):
         return self._get_port(self.public_server)

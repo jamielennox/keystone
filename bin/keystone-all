@@ -22,8 +22,9 @@ if os.path.exists(os.path.join(possible_topdir,
 from paste import deploy
 
 from keystone import config
-from keystone.common import wsgi
 from keystone.common import utils
+from keystone.common.environment import Server
+
 from keystone.openstack.common import importutils
 from keystone.openstack.common import version
 
@@ -33,7 +34,7 @@ CONF = config.CONF
 
 def create_server(conf, name, host, port):
     app = deploy.loadapp('config:%s' % conf, name=name)
-    server = wsgi.Server(app, host=host, port=port)
+    server = Server(app, host=host, port=port)
     if CONF.ssl.enable:
         server.set_ssl(CONF.ssl.certfile, CONF.ssl.keyfile,
                        CONF.ssl.ca_certs, CONF.ssl.cert_required)
@@ -47,9 +48,11 @@ def sigint_handler(signal, frame):
 
 
 def serve(*servers):
+    print "SERVING"
     signal.signal(signal.SIGINT, sigint_handler)
 
     for server in servers:
+        print "start", server
         server.start()
 
     # notify calling process we are ready to serve
