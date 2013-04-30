@@ -47,6 +47,7 @@ String = sql.String
 ForeignKey = sql.ForeignKey
 DateTime = sql.DateTime
 IntegrityError = sql.exc.IntegrityError
+OperationalError = sql.exc.OperationalError
 NotFound = sql.orm.exc.NoResultFound
 Boolean = sql.Boolean
 Text = sql.Text
@@ -229,7 +230,12 @@ class Base(object):
         engine.
 
         """
-        def new_engine():
+        engine = None
+
+        if allow_global_engine:
+            engine = get_global_engine()
+
+        if not engine:
             connection_dict = sql.engine.url.make_url(CONF.sql.connection)
 
             engine_config = {
@@ -244,8 +250,6 @@ class Base(object):
                 engine_config['listeners'] = [MySQLPingListener()]
 
             return sql.create_engine(CONF.sql.connection, **engine_config)
-
-        engine = get_global_engine() or new_engine()
 
         # auto-build the db to support wsgi server w/ in-memory backend
         if allow_global_engine and CONF.sql.connection == 'sqlite://':
@@ -272,7 +276,7 @@ def handle_conflicts(type='object'):
         def wrapper(*args, **kwargs):
             try:
                 return method(*args, **kwargs)
-            except IntegrityError as e:
+            except (IntegrityError, OperationalError) as e:
                 raise exception.Conflict(type=type, details=str(e.orig))
         return wrapper
     return decorator
