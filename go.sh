@@ -1,25 +1,42 @@
 
 TEMPLATE=backend_sql.template
-if [ ! -e $TEMPLATE ]; then 
-    echo "Cannot find file $TEMPLATE" 
+if [ ! -e $TEMPLATE ]; then
+    echo "Cannot find file $TEMPLATE"
     exit
 fi
 
-case $1 in 
-    "p" | "pg" | "postgres" ) 
+KEYSTONEDBSERVER=localhost
+KEYSTONEUSER=keystonetest
+KEYSTONEPASS=keystonetest
+KEYSTONEDB=keystonetest
+
+case $1 in
+    "p" | "pg" | "postgres" )
         NAME=postgres
-        export PGPASSWORD=postgres
-        psql -U postgres -c "DROP DATABASE keystonetest"
-        psql -U postgres -c "CREATE DATABASE keystonetest"
-        CONNECTION="postgresql://keystone:keystone@localhost/keystonetest?client_encoding=utf8"
+
+        # CREATE USER keystonetest WITH PASSWORD 'keystonetest';
+        # CREATE DATABASE keystonetest;
+        # GRANT ALL PRIVILEGES ON DATABASE keystonetest TO keystonetest;
+
+        export PGPASSWORD=$KEYSTONEPASS
+        psql -U $KEYSTONEUSER -c "select 'drop table \"' || tablename || '\" cascade;' from pg_tables;" > /dev/null || { echo "Failed to clear database"; exit 1; }
+        CONNECTION="postgresql://$KEYSTONEUSER:$KEYSTONEPASS@$KEYSTONEDBSERVER/$KEYSTONEDB?client_encoding=utf8"
         unset PGPASSWORD
         ;;
-    "m" | "my" | "mysql" ) 
+    "m" | "my" | "mysql" )
         NAME=mysql
-        mysql -uroot -ptest -e "DROP DATABASE keystonetest; CREATE DATABASE keystonetest"
-        CONNECTION="mysql://root:test@localhost/keystonetest?charset=utf8"
+
+        # CREATE USER keystonetest;
+        # CREATE DATABASE keystonetest;
+        # grant all on keystonetest.* to keystonetest@localhost identified by 'keystonetest'
+
+        TABLES=`mysql -u$KEYSTONEUSER -p$KEYSTONEPASS --batch --skip-column-names -e "SELECT concat('DROP TABLE IF EXISTS ', table_name, ';') FROM information_schema.tables WHERE table_schema = '$KEYSTONEDB'"`
+        if [ -n "$TABLES" ]; then
+            mysql -u$KEYSTONEUSER -p$KEYSTONEPASS -D $KEYSTONEDB -e "SET FOREIGN_KEY_CHECKS = 0; $TABLES SET FOREIGN_KEY_CHECKS = 1;"
+        fi
+        CONNECTION="mysql://$KEYSTONEUSER:$KEYSTONEPASS@$KEYSTONEDBSERVER/$KEYSTONEDB?charset=utf8"
         ;;
-    "s" | "sqlite" ) 
+    "s" | "sqlite" )
         NAME=sqlite
         CONNECTION="sqlite://"
         ;;
@@ -33,8 +50,8 @@ case $1 in
         echo "*** DONE ***"
         exit
         ;;
-    * ) 
-        echo "Please pick postgres, mysql or sqlite for first parameter" 
+    * )
+        echo "Please pick postgres, mysql or sqlite for first parameter"
         exit
         ;;
 esac
@@ -42,6 +59,7 @@ esac
 shift
 sed -e "s;%CONNECTION%;$CONNECTION;" $TEMPLATE > tests/backend_sql.conf
 
+rm -rf vendor/*
 tty -s
 
 # TESTNAME=
