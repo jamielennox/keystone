@@ -40,6 +40,10 @@ case $1 in
         NAME=sqlite
         CONNECTION="sqlite://"
         ;;
+    "f" | "file" )
+        NAME=file
+        CONNECTION="sqlite:///keystone.db"
+        ;;
     "a" | "all" )
         echo "*** SQLITE ***"
         $0 sqlite $2
@@ -60,7 +64,6 @@ shift
 sed -e "s;%CONNECTION%;$CONNECTION;" $TEMPLATE > tests/backend_sql.conf
 
 rm -rf vendor/*
-tty -s
 
 # TESTNAME=
 # if [ ! -z $2 ]; then
@@ -68,4 +71,6 @@ tty -s
 #     TESTNAME=$2
 # fi
 
-nosetests --openstack-stdout $@ # 2>&1 | tee test_$NAME.log test_last.log
+nosetests -s --openstack-stdout $@ # 2>&1 | tee test_$NAME.log test_last.log
+
+git checkout tests/backend_sql.conf
