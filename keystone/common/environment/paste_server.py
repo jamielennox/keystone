@@ -10,14 +10,14 @@ from OpenSSL import SSL
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
 
-# use_process = True
-#
-# if use_process:
-#     from multiprocessing import Process as Concurrent
-# else:
-#     from threading import Thread as Concurrent
+use_process = False
 
-from threading import Thread as Concurrent
+if use_process:
+    from multiprocessing import Process as Concurrent
+else:
+    # using threads does not respond to KeyboardInterrupt
+    # so will server forever and not be cancellable
+    from threading import Thread as Concurrent
 
 
 class Server(Concurrent):
@@ -45,7 +45,7 @@ class Server(Concurrent):
 
         self.host, self.port = self.server.server_address
 
-        Concurrent.start(self)
+        super(Server, self).start()
 
     def set_ssl(self, certfile, keyfile=None,
                 ca_certs=None, cert_required=True):
@@ -82,4 +82,9 @@ class Server(Concurrent):
         self.server.serve_forever()
 
     def kill(self):
-        self.server.shutdown()
+        if use_process:
+            self.terminate()
+        else:
+            self.server.shutdown()
+
+        self.join()

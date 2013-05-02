@@ -38,6 +38,7 @@ class TokenModel(sql.ModelBase, sql.DictBase):
 class Token(sql.Base, token.Driver):
     # Public interface
     def get_token(self, token_id):
+        print "GETTING TOKEN", token_id
         if token_id is None:
             raise exception.TokenNotFound(token_id=token_id)
         session = self.get_session()
@@ -54,6 +55,7 @@ class Token(sql.Base, token.Driver):
         return token_ref.to_dict()
 
     def create_token(self, token_id, data):
+        print "DO CREATE TOKEN"
         data_copy = copy.deepcopy(data)
         if not data_copy.get('expires'):
             data_copy['expires'] = token.default_expire_time()
@@ -67,6 +69,8 @@ class Token(sql.Base, token.Driver):
         with session.begin():
             session.add(token_ref)
             session.flush()
+        session.commit()
+        print "CREATED TOKEN", token_ref.to_dict()
         return token_ref.to_dict()
 
     def delete_token(self, token_id):

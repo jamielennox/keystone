@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-import greenlet
-import eventlet
 import logging
 import os
 import signal
@@ -48,11 +46,9 @@ def sigint_handler(signal, frame):
 
 
 def serve(*servers):
-    print "SERVING"
     signal.signal(signal.SIGINT, sigint_handler)
 
     for server in servers:
-        print "start", server
         server.start()
 
     # notify calling process we are ready to serve
@@ -67,10 +63,7 @@ def serve(*servers):
                 logging.exception('Failed to execute onready command')
 
     for server in servers:
-        try:
-            server.wait()
-        except greenlet.GreenletExit:
-            pass
+        server.join()
 
 
 if __name__ == '__main__':
@@ -100,17 +93,6 @@ if __name__ == '__main__':
                    "configuration directories.")
             CONF.print_help()
             sys.exit(1)
-
-    monkeypatch_thread = not CONF.standard_threads
-    pydev_debug_url = utils.setup_remote_pydev_debug()
-    if pydev_debug_url:
-        # in order to work around errors caused by monkey patching we have to
-        # set the thread to False.  An explanation is here:
-        # http://lists.openstack.org/pipermail/openstack-dev/2012-August/
-        # 000794.html
-        monkeypatch_thread = False
-    eventlet.patcher.monkey_patch(all=False, socket=True, time=True,
-                                  thread=monkeypatch_thread)
 
     options = deploy.appconfig('config:%s' % paste_config)
 

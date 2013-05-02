@@ -12,7 +12,7 @@ use_eventlet = False
 
 if use_eventlet:
     LOG.info("Setup Eventlet")
-    print ("Setup Eventlet")
+    print "SETUP EVENTLET"
     import eventlet
     from keystone.common import utils
 
@@ -33,7 +33,7 @@ if use_eventlet:
 
 else:
     LOG.info("Not Using Eventlet")
-    print ("Not Using Eventlet")
+    print "SETUP PASTE"
     from keystone.common.environment.paste_server import Server
     import httplib
     import subprocess

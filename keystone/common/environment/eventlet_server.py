@@ -3,6 +3,7 @@ import socket
 import sys
 import ssl
 
+import greenlet
 import eventlet.wsgi
 
 from keystone.common import config
@@ -88,11 +89,11 @@ class Server(object):
         if self.greenthread:
             self.greenthread.kill()
 
-    def wait(self):
+    def join(self):
         """Wait until all servers have completed running."""
         try:
             self.pool.waitall()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt, greenlet.GreenletExit:
             pass
 
     def _run(self, application, socket):
