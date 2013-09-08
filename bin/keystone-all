@@ -32,7 +32,6 @@ if os.path.exists(os.path.join(possible_topdir,
 
 
 from paste import deploy
-import pbr.version
 
 from keystone.openstack.common import gettextutils
 # NOTE(dstanek): gettextutils.enable_lazy() must be called before
@@ -110,7 +109,7 @@ if __name__ == '__main__':
     config.set_default_for_default_log_levels()
 
     CONF(project='keystone',
-         version=pbr.version.VersionInfo('keystone').version_string(),
+         version='REDHATKEYSTONEVERSION',
          default_config_files=config_files)
 
     monkeypatch_thread = not CONF.standard_threads

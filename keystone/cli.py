@@ -17,7 +17,6 @@ from __future__ import absolute_import
 import os
 
 from oslo.config import cfg
-import pbr.version
 
 from keystone.common import openssl
 from keystone.common import sql
@@ -184,7 +183,7 @@ def main(argv=None, config_files=None):
 
     CONF(args=argv[1:],
          project='keystone',
-         version=pbr.version.VersionInfo('keystone').version_string(),
+         version='REDHATKEYSTONEVERSION',
          usage='%(prog)s [' + '|'.join([cmd.name for cmd in CMDS]) + ']',
          default_config_files=config_files)
     config.setup_logging()
