@@ -385,7 +385,7 @@
 #verbose=false
 
 # Log output to standard error (boolean value)
-#use_stderr=true
+#use_stderr=false
 
 # Format string to use for log messages with context (string
 # value)
@@ -439,10 +439,11 @@
 # %(default)s (string value)
 #log_date_format=%Y-%m-%d %H:%M:%S
 
-# (Optional) Name of log file to output to. If no default is
-# set, logging will go to stdout. (string value)
+# (Optional) Name of log file to output to. (string value)
+# If not set here, logging will go to /var/log/keystone/keystone.log,
+# default from keystone-dist.conf.
 # Deprecated group/name - [DEFAULT]/logfile
-#log_file=<None>
+#log_file=/var/log/keystone/keystone.log
 
 # (Optional) The base directory used for relative --log-file
 # paths (string value)
@@ -581,7 +582,7 @@
 
 # Catalog template file name for use with the template catalog
 # backend. (string value)
-#template_file=default_catalog.templates
+#template_file=/etc/keystone/default_catalog.templates
 
 # Keystone catalog backend driver. (string value)
 #driver=keystone.catalog.backends.sql.Catalog
@@ -622,7 +623,7 @@
 # Deprecated group/name - [DEFAULT]/sql_connection
 # Deprecated group/name - [DATABASE]/sql_connection
 # Deprecated group/name - [sql]/connection
-#connection=<None>
+#connection=mysql://keystone:keystone@localhost/keystone
 
 # The SQL mode to be used for MySQL sessions. This option,
 # including the default, overrides any server-set SQL mode. To
@@ -710,7 +711,7 @@
 #
 
 # Keystone EC2Credential backend driver. (string value)
-#driver=keystone.contrib.ec2.backends.kvs.Ec2
+#driver=keystone.contrib.ec2.backends.sql.Ec2
 
 
 [endpoint_filter]
@@ -1147,7 +1148,7 @@
 
 # Name of the paste configuration file that defines the
 # available pipelines. (string value)
-#config_file=keystone-paste.ini
+#config_file=/usr/share/keystone/keystone-dist-paste.ini
 
 
 [policy]
