@@ -55,6 +55,7 @@ from keystone.common import utils
 from keystone.common import wsgi
 from keystone import config
 from keystone.contrib import endpoint_filter
+from keystone.contrib import kds
 from keystone.contrib import oauth1
 from keystone import credential
 from keystone import exception
@@ -254,9 +255,10 @@ class TestCase(NoModule, testtools.TestCase):
         self.maxDiff = None
 
     def setUp(self):
-        super(TestCase, self).setUp()
         self.config([etcdir('keystone.conf.sample'),
                      testsdir('test_overrides.conf')])
+        self.opt_in_group('kds', master_key_file=tmpdir('kds.mkey'))
+        super(TestCase, self).setUp()
         # ensure the cache region instance is setup
         cache.configure_cache_region(cache.REGION)
         self.mox = mox.Mox()
@@ -313,7 +315,7 @@ class TestCase(NoModule, testtools.TestCase):
         # identity driver.
         for manager in [identity, assignment, catalog, credential,
                         endpoint_filter, policy, token, token_provider,
-                        trust, oauth1]:
+                        trust, oauth1, kds]:
             # manager.__name__ is like keystone.xxx[.yyy],
             # converted to xxx[_yyy]
             manager_name = ('%s_api' %

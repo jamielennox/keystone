@@ -15,6 +15,7 @@
 # under the License.
 
 """SQL backends for the various services."""
+import base64
 import functools
 
 import sqlalchemy as sql
@@ -48,6 +49,7 @@ ModelBase = declarative.declarative_base()
 Column = sql.Column
 Index = sql.Index
 String = sql.String
+Integer = sql.Integer
 ForeignKey = sql.ForeignKey
 DateTime = sql.DateTime
 IntegrityError = sql.exc.IntegrityError
@@ -148,6 +150,17 @@ class JsonBlob(sql_types.TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return jsonutils.loads(value)
+
+
+class Base64Blob(sql_types.TypeDecorator):
+
+    impl = sql.Text
+
+    def process_bind_param(self, value, dialect):
+        return base64.b64encode(value)
+
+    def process_result_value(self, value, dialect):
+        return base64.b64decode(value)
 
 
 class DictBase(models.ModelBase):

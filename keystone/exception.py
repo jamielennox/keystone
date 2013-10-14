@@ -75,6 +75,13 @@ class StringLengthExceeded(ValidationError):
                        " of column %(type)s(CHAR(%(length)d)).")
 
 
+class IncorrectTypeError(ValidationError):
+    message_format = _("Expected %(attribute)s to be a %(type)s."
+                       " The server could not comply with the request"
+                       " since it is either malformed or otherwise"
+                       " incorrect. The client is assumed to be in error.")
+
+
 class ValidationSizeError(Error):
     message_format = _("Request attribute %(attribute)s must be"
                        " less than or equal to %(size)i. The server"
@@ -83,6 +90,8 @@ class ValidationSizeError(Error):
                        " The client is assumed to be in error.")
     code = 400
     title = 'Bad Request'
+
+
 
 
 class SecurityError(Error):
