@@ -269,7 +269,29 @@ class Manager(manager.Manager):
 
             ttl = self.ttl
         else:
-            raise exception.UnexpectedError('Invalid key data retrieved')
+            # fetch group keys unpack the data into variables
+            expiration = now + datetime.timedelta(minutes=10)
+            key_data = self._get_group_key_data(target, generation, expiration)
+
+            if not key_data:
+                raise exception.Unauthorized('Invalid Target')
+
+            try:
+                target_key = key_data['group_key']
+                generation = key_data['generation']
+                expiration = key_data['expiration']
+            except KeyError:
+                raise exception.UnexpectedError('Invalid key data retrieved')
+
+            # The generation of the returned key may not be the same as the
+            # on that was requested so regenerate the target name
+            target = '%s:%s' % (target, generation)
+
+            # NOTE(jamielennox): This could use either now and set the ttl to
+            # the expiry time, or use when the key was generated with a fixed
+            # ttl. The latter is probably more correct but we would need to
+            # save the generation time.
+            ttl = expiration - now
 
         # generate the keys to communicate between these two endpoints.
         # crypto.new_key is used to generate a random salt
@@ -319,6 +341,91 @@ class Manager(manager.Manager):
         else:
             return group, generation
 
+    def _get_group_key_data(self, group, generation, expiration=None):
+        """Retrieve a group key from the database. If one is not available
+        then it creates a new one with a new generation.
+
+        Returns a dict with all key data.
+        """
+        if generation is None:
+            raise exception.Unauthorized('Request requires generation')
+
+        key_data = self.driver.get_group_key(group, generation)
+
+        if key_data and expiration and generation == 0:
+            # if generation is zero then we want to have fetched a key that
+            # has a minimum amount of time left to use it.
+            try:
+                key_expiration = key_data['expiration']
+            except KeyError:
+                raise exception.UnexpectedError('No expiration on stored key')
+
+            if key_expiration < expiration:
+                key_data = None
+
+        if key_data:
+            try:
+                sig = key_data['sig_key']
+                enc = key_data['enc_key']
+            except KeyError:
+                raise exception.UnexpectedError('Invalid key data retrieved')
+
+            key_data['group_key'] = self._decrypt_keyblock(group, sig, enc)
+
+        elif generation == 0:
+            # no valid group key found, generate a new one
+            group_key = self.crypto.new_key(KEY_SIZE)
+            sig, enc = self._encrypt_keyblock(group, group_key)
+            expiration = timeutils.utcnow() + datetime.timedelta(minutes=15)
+            generation = self.driver.set_group_key(group, sig, enc, expiration)
+            key_data = {'sig_key': sig,
+                        'enc_key': enc,
+                        'expiration': expiration,
+                        'generation': generation,
+                        'group_key': group_key}
+
+        return key_data
+
+    def get_group_key(self, b64metadata, signature):
+        """Get the required group key."""
+        # get and check that the signature is correct and the key matches
+        metadata, rkey, now = self._parse_metadata(b64metadata, signature)
+
+        group, generation = self._get_target(metadata['target'])
+
+        # Group membership check, you need to be in the group to get the key
+        if metadata['requestor'].split('.')[0] != group:
+            raise exception.Unauthorized('Invalid Target')
+
+        key_data = self._get_group_key_data(group, generation)
+
+        if not key_data:
+            raise exception.Unauthorized('Invalid Target')
+
+        try:
+            expiration = key_data['expiration']
+            group_key = key_data['group_key']
+            generation = key_data['generation']
+        except KeyError:
+            raise exception.UnexpectedError('Invalid key data retrieved')
+
+        # construct the target with the key being used
+        target = '%s:%s' % (group, generation)
+
+        # build response and sign it
+        resp_metadata = jsonutils.dumps({'source': metadata['requestor'],
+                                         'destination': target,
+                                         'expiration': expiration,
+                                         'encryption': True})
+
+        resp_metadata = base64.b64encode(resp_metadata)
+        resp_group_key = self.crypto.encrypt(rkey, group_key)
+        resp_signature = self.crypto.sign(rkey, resp_metadata + resp_group_key)
+
+        return {'metadata': resp_metadata,
+                'group_key': resp_group_key,
+                'signature': resp_signature}
+
 
 class Driver(object):
     """Interface description for a KDS driver."""
@@ -334,4 +441,16 @@ class Driver(object):
         :returns tuple(string, string): signature key, encryption key
         :raises: keystone.exception.ServiceNotFound
         """
+        raise exception.NotImplemented()
+
+    def set_group_key(self, group_name, key, expiration):
+        raise exception.NotImplemented()
+
+    def get_group_key(self, group_name):
+        raise exception.NotImplemented()
+
+    def create_group(self, group_name):
+        raise exception.NotImplemented()
+
+    def delete_group(self, group_name):
         raise exception.NotImplemented()

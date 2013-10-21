@@ -107,5 +107,7 @@
     "identity:list_endpoints_for_project": [["rule:admin_required"]],
     "identity:remove_endpoint_from_project": [["rule:admin_required"]],
 
-    "identity:kds_set_key": [["rule:admin_required"]]
+    "identity:kds_set_key": [["rule:admin_required"]],
+    "identity:kds_create_group": [["rule:admin_required"]],
+    "identity:kds_delete_group": [["rule:admin_required"]]
 }

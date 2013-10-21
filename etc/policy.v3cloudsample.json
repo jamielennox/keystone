@@ -99,5 +99,7 @@
     "identity:get_role_for_trust": [["@"]],
     "identity:delete_trust": [["@"]],
 
-    "identity:kds_set_key": [["rule:admin_or_cloud_admin"]]
+    "identity:kds_set_key": [["rule:admin_or_cloud_admin"]],
+    "identity:kds_create_group": [["rule:admin_or_cloud_admin"]],
+    "identity:kds_delete_group": [["rule:admin_or_cloud_admin"]]
 }

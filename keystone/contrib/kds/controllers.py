@@ -39,3 +39,14 @@ class KDSController(wsgi.Application):
                                                type='Base64 encoded data')
 
         self.kds_api.store_key(name, keyblock)
+
+    def kds_get_group_key(self, context, metadata, signature):
+        return self.kds_api.get_group_key(metadata, signature)
+
+    @controller.protected()
+    def kds_create_group(self, context, name):
+        self.kds_api.create_group(name)
+
+    @controller.protected()
+    def kds_delete_group(self, context, name):
+        self.kds_api.delete_group(name)
