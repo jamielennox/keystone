@@ -23,41 +23,35 @@ from keystone.openstack.common import timeutils
 
 
 class KdsKey(sql.ModelBase, sql.DictBase):
-    __tablename__ = 'kds_keys'
+    __tablename__ = 'kds_key'
 
-    attributes = ['id', 'name', 'sig_key', 'enc_key']
+    attributes = ['id', 'generation', 'signature',
+                  'encrypted_key', 'expiration']
+
     id = sql.Column(sql.String(64), primary_key=True)
-    name = sql.Column(sql.Text(), nullable=False, unique=True)
-    sig_key = sql.Column(sql.Base64Blob(), nullable=False)
-    enc_key = sql.Column(sql.Base64Blob(), nullable=False)
+    generation = sql.Column(sql.Integer(), nullable=False, primary_key=True)
+
+    signature = sql.Column(sql.Base64Blob(), nullable=False)
+    encrypted_key = sql.Column(sql.Base64Blob(), nullable=False)
+    expiration = sql.Column(sql.DateTime(), nullable=True)
     extra = sql.Column(sql.JsonBlob(), nullable=False)
 
 
 class KdsGroup(sql.ModelBase, sql.DictBase):
-    __tablename__ = 'kds_groups'
-    attributes = ['id', 'name', 'generation']
+    __tablename__ = 'kds_group'
+
+    attributes = ['id', 'last_generation', 'keys']
 
     id = sql.Column(sql.String(64), primary_key=True)
-    name = sql.Column(sql.Text(), nullable=False, unique=True)
-    generation = sql.Column(sql.Integer(), default=0, nullable=False)
+    last_generation = sql.Column(sql.Integer(), nullable=True)
     extra = sql.Column(sql.JsonBlob(), nullable=False)
 
-    keys = sql.relationship('KdsGroupKey', backref='group', lazy='joined',
-                            cascade='all, delete, delete-orphan')
-
-
-class KdsGroupKey(sql.ModelBase, sql.DictBase):
-    __tablename__ = 'kds_group_keys'
-    attributes = ['group_id', 'generation', 'expiration', 'sig_key', 'enc_key']
-
-    group_id = sql.Column(sql.String(64), sql.ForeignKey('kds_groups.id'),
-                          primary_key=True, autoincrement=False)
-    generation = sql.Column(sql.Integer(), primary_key=True,
-                            autoincrement=False)
-    expiration = sql.Column(sql.DateTime(), nullable=False)
-    sig_key = sql.Column(sql.Base64Blob(), nullable=False)
-    enc_key = sql.Column(sql.Base64Blob(), nullable=False)
-    extra = sql.Column(sql.JsonBlob(), nullable=False)
+    keys = sql.relationship('KdsGroupKey',
+                            backref='group',
+                            lazy='joined',
+                            cascade='all, delete, delete-orphan',
+                            primary_join='KdsKey.id==KdsGroup.id',
+                            foreign_keys=['kds_key.id'])
 
 
 class KDS(sql.Base):
@@ -70,86 +64,72 @@ class KDS(sql.Base):
         id = self._id_from_name(kds_id)
 
         with session.begin():
-            #try to remove existing entry first if any
-            session.query(KdsKey).filter_by(id=id).delete()
+            # try to remove existing entry first if any, there may not be
+            # an existing key for us to update if it's a new entry
+            session.query(KdsKey).filter(KdsKey.id == id).delete()
 
             key_ref = KdsKey.from_dict({
                 'id': id,
-                'name': kds_id,
-                'sig_key': sig,
-                'enc_key': enc})
+                'signature': sig,
+                'encrypted_key': enc,
+                'generation': 0,
+                'expiration': None})
 
             session.add(key_ref)
 
-    def get_shared_keys(self, kds_id):
+    def get_keys(self, name, generation=None):
         session = self.get_session()
-        id = self._id_from_name(kds_id)
+        id = self._id_from_name(name)
 
-        key_ref = session.query(KdsKey).filter_by(id=id).first()
+        with session.begin():
+            # Delete old keys, these shouldn't be retrievable after some time
+            expiration = timeutils.utcnow() - datetime.timedelta(minutes=10)
+            session.query(KdsKey) \
+                .filter(KdsKey.expiration != None) \
+                .filter(KdsKey.expiration <= expiration) \
+                .delete()
+
+            key = session.query(KdsKey).filter(KdsKey.id == id)
+
+            if generation:
+                key = key.filter(KdsKey.generation == generation)
+            else:
+                key = key.order_by(KdsKey.generation.desc())
+
+            key_ref = key.first()
+
         if not key_ref:
             return None
 
-        return key_ref.sig_key, key_ref.enc_key
+        return key_ref.to_dict()
 
-    def set_group_key(self, group_name, sig_key, enc_key, expiration):
+    @sql.handle_conflicts('kds-key')
+    def set_group_key(self, group_name, signature, enc_key, expiration):
         session = self.get_session()
-
-        group = session.query(KdsGroup). \
-            filter(KdsGroup.name == group_name). \
-            first()
-
-        if not group:
-            # group does not exist
-            raise exception.Unauthorized("Target Group not Found")
-
-        key = KdsGroupKey.from_dict({'expiration': expiration,
-                                     'sig_key': sig_key,
-                                     'enc_key': enc_key})
-        key.generation = group.generation = group.generation + 1
-        group.keys.append(key)
-
-        for i in xrange(5):
-            try:
-                session.flush()
-            except sql.IntegrityError:
-                # somebody else got that generation from us
-                key.generation = group.generation = group.generation + 1
-            else:
-                break
-        else:
-            raise exception.Conflict(type='kds_group_key',
-                                     details='Max tries exceeded trying to'
-                                             ' store key generation.')
-
-        return key.generation
-
-    def get_group_key(self, group_name, generation=0):
-        session = self.get_session()
-        group_id = self._id_from_name(group_name)
-
-        now = timeutils.utcnow()
-        old_key_expiration = now - datetime.timedelta(minutes=10)
+        id = self._id_from_name(group_name)
 
         with session.begin():
-            # clean up old keys, prevent being able to retrieve stale keys
-            session.query(KdsGroupKey) \
-                .filter(KdsGroupKey.expiration <= old_key_expiration) \
-                .delete()
+            group = session.query(KdsGroup). \
+                filter(KdsGroup.id == id). \
+                first()
 
-            key = session.query(KdsGroupKey)
-            key = key.filter(KdsGroupKey.group_id == group_id)
+            if not group:
+                # group does not exist
+                raise exception.Unauthorized("Target Group not Found")
 
-            if generation > 0:
-                key = key.filter(KdsGroupKey.generation == generation)
-            else:
-                key = key.order_by(KdsGroupKey.generation.desc())
+            key = KdsKey.from_dict({'expiration': expiration,
+                                    'signature': signature,
+                                    'encrypted_key': enc_key})
+            key.generation = group.last_generation = group.last_generation + 1
+            group.keys.append(key)
 
-            key = key.first()
+            # session.add(group)
+            # session.add(key)
 
-        if key:
-            key = key.to_dict()
+            # it might throw a conflict error, should be handled above
+            session.flush()
 
-        return key
+        return key.generation
 
     def create_group(self, group_name):
         session = self.get_session()
@@ -157,8 +137,7 @@ class KDS(sql.Base):
 
         group_ref = KdsGroup.from_dict({
             'id': id,
-            'generation': 0,
-            'name': group_name})
+            'last_generation': 0})
         session.add(group_ref)
 
         try:
