@@ -11,9 +11,3 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
-from keystone.tests.contrib.kds.fixture import sqlitedb
-
-SqliteDb = sqlitedb.SqliteDb
-
-__all__ = [SqliteDb]

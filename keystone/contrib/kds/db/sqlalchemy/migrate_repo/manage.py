@@ -12,8 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.tests.contrib.kds.fixture import sqlitedb
+from migrate.versioning.shell import main
 
-SqliteDb = sqlitedb.SqliteDb
 
-__all__ = [SqliteDb]
+if __name__ == '__main__':
+    main(debug=False, repository='.')

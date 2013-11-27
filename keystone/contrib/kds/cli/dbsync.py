@@ -12,6 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sys
 
-class KdsException(Exception):
-    pass
+from keystone.contrib.kds.common import service
+from keystone.contrib.kds.db import migration
+
+
+def main():
+    service.prepare_service(sys.argv)
+    migration.db_sync()

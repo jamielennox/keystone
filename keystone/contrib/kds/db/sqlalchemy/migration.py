@@ -12,18 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fixtures
+import os
 
-from keystone.contrib.kds.common import service
+from keystone.openstack.common.db.sqlalchemy import migration
 
 
-class Conf(fixtures.Fixture):
-    """Fixture to manage global conf settings."""
+def _repo_path():
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                        'migrate_repo')
 
-    def __init__(self, conf):
-        self.conf = conf
 
-    def setUp(self):
-        super(Conf, self).setUp()
-        service.parse_args(args=[])
-        self.addCleanup(self.conf.reset)
+def db_sync(version=None):
+    migration.db_sync(_repo_path(), version=version)
+
+
+def db_version(version=None):
+    migration.db_version(_repo_path(), version)

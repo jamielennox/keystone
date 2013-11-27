@@ -20,4 +20,3 @@ class SimpleTest(base.BaseTestCase):
     def test_simple(self):
         resp = self.get("/")
         self.assertEqual(resp.json['hello'], 'world')
-        self.fail("CATCH ME")

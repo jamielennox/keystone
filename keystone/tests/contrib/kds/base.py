@@ -14,8 +14,9 @@
 
 from oslo.config import cfg
 
+from keystone.contrib.kds.common import service
+from keystone.openstack.common.fixture import config
 from keystone.openstack.common import test
-from keystone.tests.contrib.kds import fixture
 
 CONF = cfg.CONF
 
@@ -24,4 +25,9 @@ class BaseTestCase(test.BaseTestCase):
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.useFixture(fixture.Conf(CONF))
+        self.config_fixture = self.useFixture(config.Config())
+        self.CONF = self.config_fixture.conf
+        service.parse_args(args=[])
+
+    def config(self, *args, **kwargs):
+        self.config_fixture.config(*args, **kwargs)
