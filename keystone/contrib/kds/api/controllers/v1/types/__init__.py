@@ -12,20 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pecan
 
-from kds.api.controllers import v1
+from keystone.contrib.kds.api.controllers.v1.types import key_input
+from keystone.contrib.kds.api.controllers.v1.types import ticket_request
 
+KeyInput = key_input.KeyInput
+TicketRequest = ticket_request.TicketRequest
 
-class RootController(object):
-
-    v1 = v1.Controller()
-
-    @pecan.expose('json')
-    def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+__all__ = [KeyInput, TicketRequest]

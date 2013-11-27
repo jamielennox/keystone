@@ -48,19 +48,3 @@ class Connection(object):
         :returns tuple(string, string): signature key, encryption key
         :raises: keystone.exception.ServiceNotFound
         """
-
-    @abc.abstractmethod
-    def set_group_key(self, group_name, key, expiration):
-        pass
-
-    @abc.abstractmethod
-    def get_group_key(self, group_name):
-        pass
-
-    @abc.abstractmethod
-    def create_group(self, group_name):
-        pass
-
-    @abc.abstractmethod
-    def delete_group(self, group_name):
-        pass

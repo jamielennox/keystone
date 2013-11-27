@@ -13,19 +13,17 @@
 # under the License.
 
 import pecan
+from pecan import rest
+import wsme
+import wsmeext.pecan as wsme_pecan
 
-from kds.api.controllers import v1
+from keystone.contrib.kds.api.controllers.v1 import types
 
 
-class RootController(object):
+class KeyController(rest.RestController):
 
-    v1 = v1.Controller()
-
-    @pecan.expose('json')
-    def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+    @wsme.validate(wsme.types.text)
+    @wsme_pecan.wsexpose(None, wsme.types.text, body=types.KeyInput)
+    def put(self, key_name, key_input):
+        pecan.response.status = 204
+        pecan.request.storage.store_key(key_name, key_input.key)
