@@ -15,15 +15,26 @@
 import fixtures
 
 from keystone.contrib.kds.common import service
+from keystone.openstack.common.db.sqlalchemy import session as db_session
 
 
 class Conf(fixtures.Fixture):
     """Fixture to manage global conf settings."""
+
+    _SQL_CONNECTION = 'sqlite:///kds.db'
 
     def __init__(self, conf):
         self.conf = conf
 
     def setUp(self):
         super(Conf, self).setUp()
+
+        db_session.set_defaults(sql_connection=self._SQL_CONNECTION,
+                                sqlite_db='kds.sqlite')
+
+        self.conf.set_default('connection',
+                              self._SQL_CONNECTION,
+                              group='database')
+
         service.parse_args(args=[])
         self.addCleanup(self.conf.reset)
