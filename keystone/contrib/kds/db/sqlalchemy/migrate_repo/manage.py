@@ -12,11 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.tests.contrib.kds.fixture import kvsdb
-from keystone.tests.contrib.kds.fixture import sqlitedb
-
-SqliteDb = sqlitedb.SqliteDb
-KvsDb = kvsdb.KvsDb
+from migrate.versioning.shell import main
 
 
-__all__ = [SqliteDb, KvsDb]
+if __name__ == '__main__':
+    main(debug=False, repository='.')

@@ -12,11 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.tests.contrib.kds.fixture import kvsdb
-from keystone.tests.contrib.kds.fixture import sqlitedb
+import base64
 
-SqliteDb = sqlitedb.SqliteDb
-KvsDb = kvsdb.KvsDb
+import sqlalchemy
 
 
-__all__ = [SqliteDb, KvsDb]
+class Base64Blob(sqlalchemy.types.TypeDecorator):
+
+    impl = sqlalchemy.Text
+
+    def process_bind_param(self, value, dialect):
+        return base64.b64encode(value)
+
+    def process_result_value(self, value, dialect):
+        return base64.b64decode(value)

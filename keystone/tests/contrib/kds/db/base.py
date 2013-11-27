@@ -12,24 +12,28 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo.config import cfg
+import os
 
-from keystone.contrib.kds.common import service
+from keystone.contrib.kds.common import paths
 from keystone.contrib.kds.db import api as db_api
-from keystone.openstack.common.fixture import config
-from keystone.openstack.common import test
-
-CONF = cfg.CONF
+from keystone.tests.contrib.kds import base
+from keystone.tests.contrib.kds import fixture
 
 
-class BaseTestCase(test.BaseTestCase):
+class BaseTestCase(base.BaseTestCase):
+
+    scenarios = [('sqlitedb', {'sql_fixture': fixture.SqliteDb}),
+                 ('kvsdb', {'sql_fixture': fixture.KvsDb})]
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.config_fixture = self.useFixture(config.Config())
-        self.CONF = self.config_fixture.conf
-        db_api.reset()
-        service.parse_args(args=[])
 
-    def config(self, *args, **kwargs):
-        self.config_fixture.config(*args, **kwargs)
+        sqlite_db = os.path.abspath(paths.tmp_path('sqlite.db'))
+        self.config(sqlite_db=sqlite_db,
+                    sqlite_clean_db='%s.pristine' % sqlite_db)
+        self.config(group='database',
+                    connection_debug=51,
+                    connection='sqlite:////%s' % sqlite_db)
+
+        self.useFixture(self.sql_fixture())
+        self.DB = db_api.get_instance()
