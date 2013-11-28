@@ -14,7 +14,10 @@
 
 from oslo.config import cfg
 
+from keystone.contrib.kds.common import crypto
+from keystone.contrib.kds.common import paths
 from keystone.contrib.kds.common import service
+from keystone.contrib.kds.common import storage
 from keystone.contrib.kds.db import api as db_api
 from keystone.openstack.common.fixture import config
 from keystone.openstack.common import test
@@ -28,8 +31,16 @@ class BaseTestCase(test.BaseTestCase):
         super(BaseTestCase, self).setUp()
         self.config_fixture = self.useFixture(config.Config())
         self.CONF = self.config_fixture.conf
+
         db_api.reset()
+        storage.StorageManager.reset()
+        crypto.CryptoManager.reset()
+
         service.parse_args(args=[])
+
+        self.config(group='kds',
+                    master_key_file=paths.test_path('mkey.key'),
+                    )
 
     def config(self, *args, **kwargs):
         self.config_fixture.config(*args, **kwargs)

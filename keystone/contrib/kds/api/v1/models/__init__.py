@@ -12,11 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.tests.contrib.kds.api import base
+from keystone.contrib.kds.api.v1.models import key
 
+KeyInput = key.KeyInput
+KeyData = key.KeyData
 
-class SimpleTest(base.BaseTestCase):
-
-    def test_simple(self):
-        resp = self.get("/")
-        self.assertEqual(resp.json['hello'], 'world')
+__all__ = [KeyInput, KeyData]

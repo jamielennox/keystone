@@ -12,20 +12,25 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pecan
-
-from keystone.contrib.kds.api.v1 import controllers
+from keystone.openstack.common import exception
 
 
-class RootController(object):
+class KdsException(exception.OpenstackException):
 
-    v1 = controllers.Controller()
+    def __init__(self, message=None, **kwargs):
+        if message:
+            try:
+                kwargs['reason'] = message.message
+            except AttributeError:
+                kwargs['reason'] = message
 
-    @pecan.expose('json')
-    def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+        kwargs.setdefault('reason', '')
+        super(KdsException, self).__init__(**kwargs)
+
+
+class KeyNotFound(KdsException):
+    msg_fmt = ("No key for %s(name)s:%(generation). %(reason)s")
+
+
+class CryptoError(KdsException):
+    msg_fmt = ("Cryptographic Failure: %(reason)s")

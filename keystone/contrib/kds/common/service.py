@@ -27,7 +27,26 @@ API_SERVICE_OPTS = [
                help='The port for the server'),
 ]
 
+KDS_OPTS = [
+    cfg.StrOpt('master_key_file',
+               default='/etc/keystone/kds.mkey',
+               help='The location of the KDS master key. MUST be private'),
+    cfg.StrOpt('enctype',
+               default='AES',
+               help='Encryption Algorithm'),
+    cfg.StrOpt('hashtype',
+               default='SHA256',
+               help='Hashing Algorithm'),
+    cfg.IntOpt('ticket_lifetime',
+               default='3600',
+               help='Length of ticket validity (in seconds)')
+]
+
+
 CONF.register_opts(API_SERVICE_OPTS)
+CONF.register_group(cfg.OptGroup(name='kds',
+                                 title='Key Distribution Server'))
+CONF.register_opts(KDS_OPTS, group='kds')
 
 
 def parse_args(args, default_config_files=None):

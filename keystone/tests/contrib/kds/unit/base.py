@@ -12,20 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pecan
-
-from keystone.contrib.kds.api.v1 import controllers
+from keystone.tests.contrib.kds import base
 
 
-class RootController(object):
+class BaseTestCase(base.BaseTestCase):
 
-    v1 = controllers.Controller()
+    def setUp(self):
+        super(BaseTestCase, self).setUp()
 
-    @pecan.expose('json')
-    def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+        self.config(group='database', backend='kvs')

@@ -28,7 +28,9 @@ def get_pecan_config():
 
 
 def setup_app(config=None, extra_hooks=None):
-    app_hooks = [hooks.ConfigHook()]
+    app_hooks = [hooks.ConfigHook(),
+                 hooks.CryptoHook(),
+                 hooks.StorageHook()]
 
     if extra_hooks:
         app_hooks.extend(extra_hooks)
