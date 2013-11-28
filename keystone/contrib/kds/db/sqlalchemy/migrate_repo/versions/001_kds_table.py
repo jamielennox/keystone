@@ -21,54 +21,54 @@ def upgrade(migrate_engine):
     meta = sql.MetaData()
     meta.bind = migrate_engine
 
-    kds_table = sql.Table('kds_keys', meta,
-                          sql.Column('id', sql.String(64), primary_key=True),
-                          sql.Column('name', sql.Text(), nullable=False),
-                          sql.Column('sig_key', sql.Text(), nullable=False),
-                          sql.Column('enc_key', sql.Text(), nullable=False),
-                          sql.Column('extra', sql.Text(), nullable=False))
+    host_table = sql.Table('kds_hosts', meta,
+                           sql.Column('id',
+                                      sql.Integer(),
+                                      primary_key=True,
+                                      autoincrement=True),
+                           sql.Column('name',
+                                      sql.Text(),
+                                      nullable=False,
+                                      index=True,
+                                      unique=True),
+                           sql.Column('type',
+                                      sql.String(5),
+                                      nullable=False,
+                                      index=True),
+                           sql.Column('latest_generation',
+                                      sql.Integer(),
+                                      nullable=False))
 
-    kds_table.create(migrate_engine, checkfirst=True)
+    host_table.create(migrate_engine, checkfirst=True)
 
-    group_table = sql.Table('kds_groups', meta,
-                            sql.Column('id', sql.String(64), primary_key=True),
-                            sql.Column('generation', sql.Integer(),
-                                       nullable=False, default=0),
-                            sql.Column('name', sql.Text(), nullable=False),
-                            sql.Column('extra', sql.Text(), nullable=False))
+    key_table = sql.Table('kds_keys', meta,
+                          sql.Column('host_id',
+                                     sql.Integer(),
+                                     sql.ForeignKey('kds_hosts.id'),
+                                     primary_key=True,
+                                     autoincrement=False),
+                          sql.Column('generation',
+                                     sql.Integer(),
+                                     primary_key=True,
+                                     autoincrement=False),
+                          sql.Column('signature',
+                                     sql.Text(),
+                                     nullable=False),
+                          sql.Column('enc_key',
+                                     sql.Text(),
+                                     nullable=False),
+                          sql.Column('expiration',
+                                     sql.DateTime(),
+                                     nullable=True,
+                                     index=True))
 
-    group_table.create(migrate_engine, checkfirst=True)
-
-    group_keys_table = sql.Table('kds_group_keys', meta,
-                                 sql.Column('group_id',
-                                            sql.String(64),
-                                            sql.ForeignKey("kds_groups.id"),
-                                            primary_key=True,
-                                            nullable=False),
-                                 sql.Column('generation',
-                                            sql.Integer,
-                                            primary_key=True,
-                                            nullable=False),
-                                 sql.Column('sig_key',
-                                            sql.Text(),
-                                            nullable=False),
-                                 sql.Column('enc_key',
-                                            sql.Text(),
-                                            nullable=False),
-                                 sql.Column('expiration',
-                                            sql.DateTime(),
-                                            nullable=False),
-                                 sql.Column('extra',
-                                            sql.Text(),
-                                            nullable=False))
-
-    group_keys_table.create(migrate_engine, checkfirst=True)
+    key_table.create(migrate_engine, checkfirst=True)
 
 
 def downgrade(migrate_engine):
     meta = sql.MetaData()
     meta.bind = migrate_engine
 
-    for name in ['kds_group_keys', 'kds_keys', 'kds_groups']:
+    for name in ['kds_keys', 'kds_hosts']:
         table = sql.Table(name, meta, autoload=True)
         table.drop(migrate_engine, checkfirst=True)

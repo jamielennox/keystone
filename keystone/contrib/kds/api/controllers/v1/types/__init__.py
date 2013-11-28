@@ -14,9 +14,11 @@
 
 
 from keystone.contrib.kds.api.controllers.v1.types import key_input
+from keystone.contrib.kds.api.controllers.v1.types import ticket
 from keystone.contrib.kds.api.controllers.v1.types import ticket_request
 
 KeyInput = key_input.KeyInput
+Ticket = ticket.Ticket
 TicketRequest = ticket_request.TicketRequest
 
-__all__ = [KeyInput, TicketRequest]
+__all__ = [KeyInput, Ticket, TicketRequest]

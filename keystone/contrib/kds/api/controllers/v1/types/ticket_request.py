@@ -14,6 +14,7 @@
 
 import base64
 
+import pecan
 import wsme
 
 from keystone.contrib.kds.common import exception
@@ -90,7 +91,7 @@ class TicketRequest(wsme.types.Base):
 
     def verify_signature(self, key):
         try:
-            sigc = pecan.request.crypto.sign(, self.metadata)
+            sigc = pecan.request.crypto.sign(key, self.metadata)
         except Exception:
             raise exception.Unauthorized('Invalid Request')
 

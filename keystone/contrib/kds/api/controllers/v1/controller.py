@@ -15,6 +15,7 @@
 import pecan
 
 from keystone.contrib.kds.api.controllers.v1 import key as key_controller
+from keystone.contrib.kds.api.controllers.v1 import ticket as ticket_controller
 
 
 class Controller(object):
@@ -28,6 +29,7 @@ class Controller(object):
                         'rel': 'self'}]}
 
     key = key_controller.KeyController()
+    ticket = ticket_controller.TicketController()
 
     @pecan.expose('json')
     def index(self):

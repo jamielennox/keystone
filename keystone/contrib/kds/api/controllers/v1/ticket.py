@@ -12,29 +12,20 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import base64
+
 import pecan
 from pecan import rest
-import wsme
 import wsmeext.pecan as wsme_pecan
 
-from keystone.contrib.kds.common import exception
+from keystone.contrib.kds.api.controllers.v1 import types
+from keystone.openstack.common import jsonutils
+from keystone.openstack.common import timeutils
 
 
-class KeyController(rest.RestController):
+class TicketController(rest.RestController):
 
-    def _create_esek_data(requestor, destination, now):
-        info = "%s,%s,%s" % (ticket_request.requestor, host, now)
-        sig, enc_key = pecan.request.crypto.generate_keys(rndkey, info)
-
-        target_key = pecan.request.storage.retrieve_key(host)
-
-        esek_data = {'key': base64.b64ecode(rndkey),
-                     'timestamp': now,
-                     'ttl': CONF.kds.ttl}
-        esek = pecan.request.crypto.encrypt(target_key,
-                                            jsonutils.dumps(esek_data))
-
-    @wsme_pecan.wsexpose(Ticket, body=TicketRequest)
+    @wsme_pecan.wsexpose(types.Ticket, body=types.TicketRequest)
     def post(self, ticket_request):
         now = timeutils.utcnow()
 
@@ -62,15 +53,15 @@ class KeyController(rest.RestController):
         # generate the sek on the target
         esek_data = {'key': base64.b64ecode(rndkey),
                      'timestamp': now,
-                     'ttl': CONF.kds.ttl}
+                     'ttl': pecan.request.conf.kds.ttl}
         esek = pecan.request.crypto.encrypt(target_key,
                                             jsonutils.dumps(esek_data))
 
         response = types.Ticket()
         response.set_ticket(rkey, sig, enc_key, esek)
-        response.set_metadata(source=ticket_requestor.requestor,
+        response.set_metadata(source=ticket_request.requestor,
                               destination=host,
-                              expiration=now + CONF.kds.ttl)
+                              expiration=now + pecan.request.conf.kds.ttl)
         response.sign(rkey)
 
         return response

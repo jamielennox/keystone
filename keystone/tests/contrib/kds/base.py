@@ -14,8 +14,10 @@
 
 from oslo.config import cfg
 
+from keystone.contrib.kds.common import paths
+from keystone.contrib.kds.common import service
+from keystone.openstack.common.fixture import config
 from keystone.openstack.common import test
-from keystone.tests.contrib.kds import fixture
 
 CONF = cfg.CONF
 
@@ -24,4 +26,13 @@ class BaseTestCase(test.BaseTestCase):
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
-        self.useFixture(fixture.Conf(CONF))
+        self.config_fixture = self.useFixture(config.Config())
+        self.CONF = self.config_fixture.conf
+        service.parse_args(args=[])
+
+        self.config(group='kds',
+                    master_key_file=paths.test_path('mkey.key'),
+                    )
+
+    def config(self, *args, **kwargs):
+        self.config_fixture.config(*args, **kwargs)

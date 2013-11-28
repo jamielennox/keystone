@@ -16,22 +16,22 @@ import base64
 import errno
 import os
 
-from oslo.config import cfg
+import pecan
 
-from kds.common import exception
-from kds.common import utils
-from kds.openstack.common.crypto import utils as cryptoutils
+from keystone.contrib.kds.common import exception
+from keystone.contrib.kds.common import utils
+from keystone.openstack.common.crypto import utils as cryptoutils
 
-CONF = cfg.CONF
 KEY_SIZE = 16
 
 
 class CryptoManager(utils.SingletonManager):
 
     def __init__(self):
-        self.crypto = cryptoutils.SymmetricCrypto(enctype=CONF.kds.enctype,
-                                                  hashtype=CONF.kds.hashtype)
-        self.hkdf = cryptoutils.HKDF(hashtype=CONF.kds.hashtype)
+        self.crypto = cryptoutils.SymmetricCrypto(
+            enctype=pecan.request.conf.kds.enctype,
+            hashtype=pecan.request.conf.kds.hashtype)
+        self.hkdf = cryptoutils.HKDF(hashtype=pecan.request.conf.kds.hashtype)
         self.mkey = self._load_master_key()
 
     def _load_master_key(self):
@@ -40,7 +40,7 @@ class CryptoManager(utils.SingletonManager):
         mkey = None
 
         try:
-            with open(CONF.kds.master_key_file, 'r') as f:
+            with open(pecan.request.conf.kds.master_key_file, 'r') as f:
                 mkey = base64.b64decode(f.read())
         except IOError as e:
             if e.errno == errno.ENOENT:
@@ -48,15 +48,17 @@ class CryptoManager(utils.SingletonManager):
                 mkey = self.crypto.new_key(KEY_SIZE)
                 f = None
                 try:
-                    f = os.open(CONF.kds.master_key_file, flags, 0o600)
+                    f = os.open(pecan.request.conf.kds.master_key_file,
+                                flags,
+                                0o600)
                     os.write(f, base64.b64encode(mkey))
-                except Exception:
+                except Exception, e:
                     try:
-                        os.remove(CONF.kds.master_key_file)
+                        os.remove(pecan.request.conf.kds.master_key_file)
                     except OSError:
                         pass
 
-                    raise
+                    raise e
                 finally:
                     if f:
                         os.close(f)
@@ -79,7 +81,7 @@ class CryptoManager(utils.SingletonManager):
     def encrypt(self, key, data):
         return self.crypto.encrypt(key, data)
 
-    def sign(sekf, key, data):
+    def sign(self, key, data):
         return self.crypto.sign(key, data)
 
     def generate_keys(self, prk, info="", key_size=KEY_SIZE):

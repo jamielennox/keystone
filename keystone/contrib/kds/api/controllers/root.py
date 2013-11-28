@@ -14,7 +14,7 @@
 
 import pecan
 
-from kds.api.controllers import v1
+from keystone.contrib.kds.api.controllers import v1
 
 
 class RootController(object):

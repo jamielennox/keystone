@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from kds.api.controllers.v1.controller import Controller
+from keystone.contrib.kds.api.controllers.v1.controller import Controller
 
 
 __all__ = [Controller]

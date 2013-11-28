@@ -14,9 +14,9 @@
 
 from oslo.config import cfg
 
-from kds.common import crypto
-from kds.common import utils
-from kds.db import api as dbapi
+from keystone.contrib.kds.common import crypto
+from keystone.contrib.kds.common import utils
+from keystone.contrib.kds.db import api as dbapi
 
 CONF = cfg.CONF
 KEY_SIZE = 16

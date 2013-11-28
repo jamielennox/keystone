@@ -12,29 +12,68 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fixtures
+import os
+import shutil
 
-from keystone.contrib.kds.common import service
+import fixtures
+from oslo.config import cfg
+
+from keystone.contrib.kds.db import migration
 from keystone.openstack.common.db.sqlalchemy import session as db_session
 
+CONF = cfg.CONF
 
-class Conf(fixtures.Fixture):
-    """Fixture to manage global conf settings."""
+test_opts = [
+    cfg.StrOpt('sqlite_clean_db',
+               default='sqlite.db.pristine',
+               help='File name of clean sqlite db'),
+]
 
-    _SQL_CONNECTION = 'sqlite:///kds.db'
+CONF.register_opts(test_opts)
 
-    def __init__(self, conf):
-        self.conf = conf
+CONF.import_opt('connection',
+                'keystone.openstack.common.db.sqlalchemy.session',
+                group='database')
+CONF.import_opt('sqlite_db', 'keystone.openstack.common.db.sqlalchemy.session')
+
+
+class Database(fixtures.Fixture):
+
+    def __init__(self, sql_connection):
+        self.sql_connection = sql_connection
+        self.sqlite_db = CONF.sqlite_db
+        self.sqlite_clean_db = CONF.sqlite_clean_db
+
+        self.engine = db_session.get_engine()
+        self.engine.dispose()
+        conn = self.engine.connect()
+        if sql_connection == "sqlite://":
+            if migration.db_version() > migration.INIT_VERSION:
+                return
+        else:
+            try:
+                os.remove(CONF.sqlite_db)
+            except OSError:
+                pass
+
+        migration.db_sync()
+        self.post_migrations()
+        if sql_connection == "sqlite://":
+            conn = self.engine.connect()
+            self._DB = "".join(line for line in conn.connection.iterdump())
+            self.engine.dispose()
+        else:
+            shutil.copyfile(self.sqlite_db, self.sqlite_clean_db)
 
     def setUp(self):
-        super(Conf, self).setUp()
+        super(Database, self).setUp()
 
-        db_session.set_defaults(sql_connection=self._SQL_CONNECTION,
-                                sqlite_db='kds.sqlite')
+        if self.sql_connection == "sqlite://":
+            conn = self.engine.connect()
+            conn.connection.executescript(self._DB)
+            self.addCleanup(self.engine.dispose)
+        else:
+            shutil.copyfile(self.sqlite_clean_db, self.sqlite_db)
 
-        self.conf.set_default('connection',
-                              self._SQL_CONNECTION,
-                              group='database')
-
-        service.parse_args(args=[])
-        self.addCleanup(self.conf.reset)
+    def post_migrations(self):
+        """Any addition steps that are needed outside of the migrations."""

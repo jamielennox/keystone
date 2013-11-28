@@ -12,13 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import webtest
 
 import pecan.testing
 
 from keystone.contrib.kds.common import paths
-from keystone.tests.contrib.kds import base
+from keystone.contrib.kds.db import api as db_api
 from keystone.openstack.common import jsonutils
+from keystone.tests.contrib.kds import base
+from keystone.tests.contrib.kds import fixture
 
 
 def urljoin(*args):
@@ -45,6 +48,13 @@ class BaseTestCase(base.BaseTestCase):
 
     def setUp(self):
         super(BaseTestCase, self).setUp()
+
+        sqlite_db = os.path.abspath(paths.tmp_path('sqlite.db'))
+        self.config(sqlite_db=sqlite_db,
+                    sqlite_clean_db='%s.pristine' % sqlite_db)
+        self.config(group='database',
+                    connection='sqlite:////%s' % sqlite_db)
+
         root = 'keystone.contrib.kds.api.controllers.root.RootController'
 
         self.app_config = {
@@ -56,6 +66,8 @@ class BaseTestCase(base.BaseTestCase):
             },
         }
 
+        self.useFixture(fixture.Database(self.CONF.database.connection))
+        self.DB = db_api.IMPL
         self.app = pecan.testing.load_test_app(self.app_config)
         self.addCleanup(pecan.set_config, {}, overwrite=True)
 

@@ -21,7 +21,7 @@ from keystone.contrib.kds.common import storage
 
 class ConfigHook(hooks.PecanHook):
     def before(self, state):
-        state.request.cfg = cfg.CONF
+        state.request.conf = cfg.CONF
 
 
 class StorageHook(hooks.PecanHook):

@@ -17,7 +17,14 @@ import os
 from keystone.openstack.common.db.sqlalchemy import migration
 
 
+def _repo_path():
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                        'migrate_repo')
+
+
 def db_sync(version=None):
-    abs_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            'migrate_repo')
-    migration.db_sync(abs_path, version)
+    migration.db_sync(_repo_path(), version=version)
+
+
+def db_version(version=None):
+    migration.db_version(_repo_path(), version)
