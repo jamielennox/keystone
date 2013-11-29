@@ -45,7 +45,7 @@ class MalformedRequest(KdsException):
 
 
 class Expired(KdsException):
-    msg_fmt = ("Ticket validity expired")
+    msg_fmt = ("Key or Ticket validity expired")
 
 
 class Unauthorized(KdsException):

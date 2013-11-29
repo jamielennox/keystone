@@ -54,3 +54,23 @@ class Connection(object):
         :returns tuple(string, string): signature key, encryption key
         :raises: keystone.exception.ServiceNotFound
         """
+
+    @abc.abstractmethod
+    def create_group(self, name):
+        """Create a new group.
+
+        :param string: The group name.
+        :returns bool: True if work was performed, False otherwise (eg if the
+                       group already existed).
+        """
+
+    @abc.abstractmethod
+    def delete_host(self, name, group=None):
+        """Delete a host or group.
+
+        :param string name: The host or group name.
+        :param bool group: (optional) If set only delete the host if it is (or
+                           is not if False) a group.
+        :returns bool: True if work was performed, False otherwise (eg deleting
+                       a group/host that never existed).
+        """

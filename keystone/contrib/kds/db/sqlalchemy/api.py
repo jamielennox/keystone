@@ -14,6 +14,7 @@
 
 from keystone.contrib.kds.db import api
 from keystone.contrib.kds.db.sqlalchemy import models
+from keystone.openstack.common.db import exception as db_exc
 from keystone.openstack.common.db.sqlalchemy import session as db_session
 
 
@@ -32,7 +33,9 @@ class Connection (api.Connection):
                     filter(models.Host.name == name).
                     first())
 
-            if not host:
+            if host:
+                assert host.group == group
+            else:
                 host = models.Host(name=name,
                                    latest_generation=0,
                                    group=group)
@@ -72,3 +75,28 @@ class Connection (api.Connection):
                     'signature': result.Key.signature,
                     'generation': result.Key.generation,
                     'expiration': result.Key.expiration}
+
+    def create_group(self, name):
+        session = db_session.get_session()
+
+        try:
+            with session.begin():
+                group = models.Host(name=name, latest_generation=0, group=True)
+                session.add(group)
+        except db_exc.DBDuplicateEntry:
+            # an existing group of this name already exists.
+            return False
+
+        return True
+
+    def delete_host(self, name, group=None):
+        session = db_session.get_session()
+
+        with session.begin():
+            query = session.query(models.Host).filter(models.Host.name == name)
+            if group is not None:
+                query = query.filter(models.Host.group == group)
+
+            count = query.delete()
+
+        return count > 0

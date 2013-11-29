@@ -12,14 +12,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.contrib.kds.api.v1.models import group
-from keystone.contrib.kds.api.v1.models import key
-from keystone.contrib.kds.api.v1.models import ticket
+from testscenarios import load_tests_apply_scenarios as load_tests  # noqa
 
-Group = group.Group
-KeyInput = key.KeyInput
-KeyData = key.KeyData
-Ticket = ticket.Ticket
-TicketRequest = ticket.TicketRequest
+from keystone.tests.contrib.kds.db import base
 
-__all__ = [KeyInput, KeyData, Ticket, TicketRequest]
+TEST_NAME = 'test-name'
+
+
+class TestDbGroups(base.BaseTestCase):
+
+    def test_create_group(self):
+        self.assertTrue(self.DB.create_group(TEST_NAME))
+        self.assertFalse(self.DB.create_group(TEST_NAME))
+
+    def test_delete_group(self):
+        self.assertTrue(self.DB.create_group(TEST_NAME))
+        self.assertTrue(self.DB.delete_host(TEST_NAME))
+
+    def test_delete_without_create(self):
+        self.assertFalse(self.DB.delete_host(TEST_NAME))

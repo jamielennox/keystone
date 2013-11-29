@@ -12,14 +12,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.contrib.kds.api.v1.models import group
-from keystone.contrib.kds.api.v1.models import key
-from keystone.contrib.kds.api.v1.models import ticket
+from keystone.tests.contrib.kds.api.v1 import base
 
-Group = group.Group
-KeyInput = key.KeyInput
-KeyData = key.KeyData
-Ticket = ticket.Ticket
-TicketRequest = ticket.TicketRequest
 
-__all__ = [KeyInput, KeyData, Ticket, TicketRequest]
+class GroupCrudTest(base.BaseTestCase):
+
+    def test_create_group(self):
+        self.put('/group/test-name', expected_status=200)
+        self.delete('/group/test-name', expected_status=200)
+
+    def test_double_create_group(self):
+        self.put('/group/test-name', expected_status=200)
+        self.put('/group/test-name', expected_status=200)
+
+    def test_delete_without_create_group(self):
+        self.delete('/group/test-name', expected_status=200)

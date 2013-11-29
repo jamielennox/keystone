@@ -14,6 +14,7 @@
 
 import pecan
 
+from keystone.contrib.kds.api.v1.controllers import group as group_controller
 from keystone.contrib.kds.api.v1.controllers import key as key_controller
 from keystone.contrib.kds.api.v1.controllers import ticket as ticket_controller
 
@@ -28,6 +29,7 @@ class Controller(object):
                         'href': '/v1/',
                         'rel': 'self'}]}
 
+    group = group_controller.GroupController()
     key = key_controller.KeyController()
     ticket = ticket_controller.TicketController()
 

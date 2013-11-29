@@ -27,7 +27,7 @@ from keystone.tests.contrib.kds import fixture
 
 
 def urljoin(*args):
-    return "/%s/" % "/".join([a.strip("/") for a in args])
+    return "/%s" % "/".join([a.strip("/") for a in args])
 
 
 def method_func(method):
