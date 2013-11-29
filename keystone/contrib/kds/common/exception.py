@@ -34,3 +34,19 @@ class KeyNotFound(KdsException):
 
 class CryptoError(KdsException):
     msg_fmt = ("Cryptographic Failure: %(reason)s")
+
+
+class Unexpected(KdsException):
+    msg_fmt = ("Unexpected error: %(reason)s")
+
+
+class MalformedRequest(KdsException):
+    msg_fmt = ("Malformed message body: %(reason)s")
+
+
+class Expired(KdsException):
+    msg_fmt = ("Ticket validity expired")
+
+
+class Unauthorized(KdsException):
+    msg_fmt = ("Not Authorized")

@@ -17,6 +17,7 @@ import webtest
 
 import pecan.testing
 
+from keystone.contrib.kds.common import crypto
 from keystone.contrib.kds.common import paths
 from keystone.contrib.kds.common import storage
 from keystone.contrib.kds.db import api as db_api
@@ -68,8 +69,10 @@ class BaseTestCase(base.BaseTestCase):
         }
 
         self.useFixture(fixture.SqliteDb())
+        self.CRYPTO = crypto.CryptoManager.get_instance()
         self.DB = db_api.get_instance()
         self.STORAGE = storage.StorageManager.get_instance()
+
         self.app = pecan.testing.load_test_app(self.app_config)
         self.addCleanup(pecan.set_config, {}, overwrite=True)
 
