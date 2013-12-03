@@ -12,6 +12,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 
-class KdsException(Exception):
-    pass
+from keystone.openstack.common.db.sqlalchemy import migration
+
+
+def _repo_path():
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                        'migrate_repo')
+
+
+def db_sync(version=None):
+    migration.db_sync(_repo_path(), version=version)
+
+
+def db_version(version=None):
+    migration.db_version(_repo_path(), version)

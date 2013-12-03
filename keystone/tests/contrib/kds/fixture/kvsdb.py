@@ -12,20 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.contrib.kds.common import service
-from keystone.contrib.kds.db import api as db_api
-from keystone.openstack.common.fixture import config
-from keystone.openstack.common import test
+import fixtures
+from oslo.config import cfg
+
+CONF = cfg.CONF
 
 
-class BaseTestCase(test.BaseTestCase):
+class KvsDb(fixtures.Fixture):
 
     def setUp(self):
-        super(BaseTestCase, self).setUp()
-        self.config_fixture = self.useFixture(config.Config())
-        self.CONF = self.config_fixture.conf
-        db_api.reset()
-        service.parse_args(args=[])
-
-    def config(self, *args, **kwargs):
-        self.config_fixture.config(*args, **kwargs)
+        super(KvsDb, self).setUp()
+        CONF.set_override('backend', 'kvs', 'database')

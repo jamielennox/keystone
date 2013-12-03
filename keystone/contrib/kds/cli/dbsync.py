@@ -12,20 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sys
+
+from keystone.openstack.common import gettextutils
+
+PROJECT = 'kds'
+gettextutils.install(PROJECT)
+
 from keystone.contrib.kds.common import service
-from keystone.contrib.kds.db import api as db_api
-from keystone.openstack.common.fixture import config
-from keystone.openstack.common import test
+from keystone.contrib.kds.db import migration
 
 
-class BaseTestCase(test.BaseTestCase):
-
-    def setUp(self):
-        super(BaseTestCase, self).setUp()
-        self.config_fixture = self.useFixture(config.Config())
-        self.CONF = self.config_fixture.conf
-        db_api.reset()
-        service.parse_args(args=[])
-
-    def config(self, *args, **kwargs):
-        self.config_fixture.config(*args, **kwargs)
+def main():
+    service.prepare_service(sys.argv)
+    migration.db_sync()

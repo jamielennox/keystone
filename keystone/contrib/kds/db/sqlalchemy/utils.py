@@ -12,20 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.contrib.kds.common import service
-from keystone.contrib.kds.db import api as db_api
-from keystone.openstack.common.fixture import config
-from keystone.openstack.common import test
+import base64
+
+import sqlalchemy
 
 
-class BaseTestCase(test.BaseTestCase):
+class Base64Blob(sqlalchemy.types.TypeDecorator):
 
-    def setUp(self):
-        super(BaseTestCase, self).setUp()
-        self.config_fixture = self.useFixture(config.Config())
-        self.CONF = self.config_fixture.conf
-        db_api.reset()
-        service.parse_args(args=[])
+    impl = sqlalchemy.Text
 
-    def config(self, *args, **kwargs):
-        self.config_fixture.config(*args, **kwargs)
+    def process_bind_param(self, value, dialect):
+        return base64.b64encode(value)
+
+    def process_result_value(self, value, dialect):
+        return base64.b64decode(value)
