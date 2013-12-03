@@ -15,7 +15,22 @@
 from oslo.config import cfg
 from pecan import hooks
 
+from keystone.contrib.kds.common import crypto
+from keystone.contrib.kds.common import storage
+
 
 class ConfigHook(hooks.PecanHook):
     def before(self, state):
-        state.request.cfg = cfg.CONF
+        state.request.conf = cfg.CONF
+
+
+class StorageHook(hooks.PecanHook):
+
+    def before(self, state):
+        state.request.storage = storage.StorageManager.get_instance()
+
+
+class CryptoHook(hooks.PecanHook):
+
+    def before(self, state):
+        state.request.crypto = crypto.CryptoManager.get_instance()

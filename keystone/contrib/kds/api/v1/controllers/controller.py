@@ -14,18 +14,21 @@
 
 import pecan
 
-from keystone.contrib.kds.api.v1 import controllers
+from keystone.contrib.kds.api.v1.controllers import key as key_controller
 
 
-class RootController(object):
+class Controller(object):
+    """Version 1 API controller root."""
 
-    v1 = controllers.Controller()
+    VERSION_INFO = {'status': 'stable',
+                    'media-types': [{'base': 'application/json'}],
+                    'id': 'v1.0',
+                    'links': [{
+                        'href': '/v1/',
+                        'rel': 'self'}]}
+
+    key = key_controller.KeyController()
 
     @pecan.expose('json')
     def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+        return {'version': self.VERSION_INFO}

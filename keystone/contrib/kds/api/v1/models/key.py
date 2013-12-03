@@ -12,20 +12,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pecan
-
-from keystone.contrib.kds.api.v1 import controllers
+import wsme
 
 
-class RootController(object):
+class KeyInput(wsme.types.Base):
+    key = wsme.wsattr(wsme.types.binary, mandatory=True)
 
-    v1 = controllers.Controller()
 
-    @pecan.expose('json')
-    def index(self):
-        pecan.response.status = 300
-        return {
-            'versions': {
-                'values': [self.v1.VERSION_INFO]
-            }
-        }
+class KeyData(wsme.types.Base):
+    name = wsme.wsattr(wsme.types.text, mandatory=True)
+    generation = wsme.wsattr(int, mandatory=True)
