@@ -57,9 +57,10 @@ def malformed(msg):
 class Endpoint(object):
     """A source or destination for a ticket."""
 
-    def __init__(self, endpoint_str):
+    def __init__(self, endpoint_str, group=None):
         self._cache = dict()
         self._set_endpoint(endpoint_str)
+        self._group = group
 
     @malformed('endpoint')
     def _set_endpoint(self, endpoint_str):
@@ -78,6 +79,10 @@ class Endpoint(object):
     @property
     def key(self):
         return self.key_data['key']
+
+    @property
+    def key_group(self):
+        return self.key_data['group']
 
     @property
     def key_generation(self):
@@ -106,7 +111,7 @@ class BaseRequest(wsme.types.Base):
     @memoize
     @malformed("source")
     def source(self):
-        return Endpoint(self.meta['source'])
+        return Endpoint(self.meta['source'], group=False)
 
     @memoize
     @malformed("destination")
