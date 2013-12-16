@@ -24,6 +24,21 @@ from keystone.openstack.common.crypto import utils as cryptoutils
 
 CONF = cfg.CONF
 
+CRYPTO_OPTS = [
+    cfg.StrOpt('master_key_file',
+               default='/etc/keystone/kds.mkey',
+               help='The location of the KDS master key. MUST be private'),
+    cfg.StrOpt('enctype',
+               default='AES',
+               help='Encryption Algorithm'),
+    cfg.StrOpt('hashtype',
+               default='SHA256',
+               help='Hashing Algorithm')]
+
+CONF.register_group(cfg.OptGroup(name='crypto',
+                                 title='Cryptography Options'))
+CONF.register_opts(CRYPTO_OPTS, group='crypto')
+
 
 class CryptoManager(utils.SingletonManager):
 
@@ -31,9 +46,9 @@ class CryptoManager(utils.SingletonManager):
 
     def __init__(self):
         self.crypto = cryptoutils.SymmetricCrypto(
-            enctype=CONF.kds.enctype,
-            hashtype=CONF.kds.hashtype)
-        self.hkdf = cryptoutils.HKDF(hashtype=CONF.kds.hashtype)
+            enctype=CONF.crypto.enctype,
+            hashtype=CONF.crypto.hashtype)
+        self.hkdf = cryptoutils.HKDF(hashtype=CONF.crypto.hashtype)
         self.mkey = self._load_master_key()
 
     def _load_master_key(self):
@@ -42,7 +57,7 @@ class CryptoManager(utils.SingletonManager):
         mkey = None
 
         try:
-            with open(CONF.kds.master_key_file, 'r') as f:
+            with open(CONF.crypto.master_key_file, 'r') as f:
                 mkey = base64.b64decode(f.read())
         except IOError as e:
             if e.errno == errno.ENOENT:
@@ -50,11 +65,11 @@ class CryptoManager(utils.SingletonManager):
                 mkey = self.crypto.new_key(self.KEY_SIZE)
                 f = None
                 try:
-                    f = os.open(CONF.kds.master_key_file, flags, 0o600)
+                    f = os.open(CONF.crypto.master_key_file, flags, 0o600)
                     os.write(f, base64.b64encode(mkey))
                 except Exception as e:
                     try:
-                        os.remove(CONF.kds.master_key_file)
+                        os.remove(CONF.crypto.master_key_file)
                     except OSError:
                         pass
 

@@ -28,15 +28,6 @@ API_SERVICE_OPTS = [
 ]
 
 KDS_OPTS = [
-    cfg.StrOpt('master_key_file',
-               default='/etc/keystone/kds.mkey',
-               help='The location of the KDS master key. MUST be private'),
-    cfg.StrOpt('enctype',
-               default='AES',
-               help='Encryption Algorithm'),
-    cfg.StrOpt('hashtype',
-               default='SHA256',
-               help='Hashing Algorithm'),
     cfg.IntOpt('ticket_lifetime',
                default='3600',
                help='Length of ticket validity (in seconds)')

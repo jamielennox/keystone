@@ -17,9 +17,12 @@ from keystone.contrib.kds.api.v1.models import key
 from keystone.contrib.kds.api.v1.models import ticket
 
 Group = group.Group
+GroupKey = group.GroupKey
+GroupKeyRequest = group.GroupKeyRequest
 KeyInput = key.KeyInput
 KeyData = key.KeyData
 Ticket = ticket.Ticket
 TicketRequest = ticket.TicketRequest
 
-__all__ = [KeyInput, KeyData, Ticket, TicketRequest]
+__all__ = [Group, GroupKey, GroupKeyRequest,
+           KeyInput, KeyData, Ticket, TicketRequest]

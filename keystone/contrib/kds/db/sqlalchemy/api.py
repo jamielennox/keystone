@@ -54,7 +54,7 @@ class Connection (api.Connection):
         session = db_session.get_session()
 
         query = session.query(models.Host, models.Key)
-        query = query.join(models.Key)
+        query = query.outerjoin(models.Key)
         query = query.filter(models.Host.name == name)
 
         if group is not None:
@@ -63,18 +63,28 @@ class Connection (api.Connection):
         if generation is not None:
             query = query.filter(models.Key.generation == generation)
         else:
-            query = query.filter(models.Host.latest_generation ==
-                                 models.Key.generation)
+            # NOTE(jamielennox): This says get the key with the generation that
+            # matches the latest_generation on the host, if that doesn't exist
+            # and it is a group key with a latest_generation of 0 that means no
+            # key has been set so just get the host part
+            query = query.filter((models.Host.latest_generation ==
+                                  models.Key.generation) |
+                                 ((models.Host.group == True) &
+                                  (models.Host.latest_generation == 0)))
 
         result = query.first()
 
         if result:
-            return {'name': result.Host.name,
-                    'group': result.Host.group,
-                    'key': result.Key.enc_key,
-                    'signature': result.Key.signature,
-                    'generation': result.Key.generation,
-                    'expiration': result.Key.expiration}
+            res = {'name': result.Host.name,
+                   'group': result.Host.group}
+
+            if result.Key:
+                res.update({'key': result.Key.enc_key,
+                            'signature': result.Key.signature,
+                            'generation': result.Key.generation,
+                            'expiration': result.Key.expiration})
+
+            return res
 
     def create_group(self, name):
         session = db_session.get_session()

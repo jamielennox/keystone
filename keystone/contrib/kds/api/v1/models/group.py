@@ -60,10 +60,9 @@ class GroupKeyRequest(base.BaseRequest):
         super(GroupKeyRequest, self).verify()
 
         # check that we are a group member
-        if self.source.host.split('.')[0] != self.dest.host:
-            raise exception.Unauthorized("Not a group member")
+        if self.source.host.split('.')[0] != self.destination.host:
+            pecan.abort(403, 'Not authorized for key')
 
         # we can only request a group key for a group
         if not self.destination.key_group:
-            raise exception.KeyNotFound(name=self.destination.host,
-                                        generation=self.destination.generation)
+            pecan.abort(403, 'Cannot request non group key')

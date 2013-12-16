@@ -12,8 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# import datetime
-
 import pecan
 from pecan import rest
 import wsme
@@ -24,18 +22,25 @@ from keystone.contrib.kds.api.v1 import models
 
 class GroupController(rest.RestController):
 
+    @wsme.validate(models.Group)
     @wsme_pecan.wsexpose(models.Group, wsme.types.text)
     def put(self, name):
-        pecan.request.storage.create_group(name)
-        pecan.response.status = 204
-        return models.Group(name=name)
+        response = wsme.api.Response(models.Group(name=name))
+
+        if pecan.request.storage.create_group(name):
+            response.status_code = 201
+        else:
+            response.status_code = 200
+
+        return response
 
     @wsme_pecan.wsexpose(None, wsme.types.text)
     def delete(self, name):
-        pecan.request.storage.delete_group(name)
+        if not pecan.request.storage.delete_group(name):
+            pecan.abort(404)
 
-    @wsme.validate(models.Ticket)
-    @wsme_pecan.wsexpose(models.Ticket, body=models.TicketRequest)
+    @wsme.validate(models.GroupKey)
+    @wsme_pecan.wsexpose(models.GroupKey, body=models.GroupKeyRequest)
     def post(self, group_request):
         group_request.verify()
         return group_request.new_response()

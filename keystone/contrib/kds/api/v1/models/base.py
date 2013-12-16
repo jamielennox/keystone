@@ -69,7 +69,8 @@ class Endpoint(object):
     @memoize
     def key_data(self):
         try:
-            return pecan.request.storage.get_key(self.host, self.generation)
+            return pecan.request.storage.get_key(self.host, self.generation,
+                                                 group=self._group)
         except exception.CryptoError:
             pecan.abort(500, "Failed to decrypt key for '%s:%s'. " %
                         (self.host, self.generation))

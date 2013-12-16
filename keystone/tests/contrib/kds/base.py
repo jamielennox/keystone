@@ -35,7 +35,7 @@ class BaseTestCase(test.BaseTestCase):
         service.parse_args(args=[])
 
         self.master_key_file = paths.test_path('mkey.key')
-        self.config(group='kds',
+        self.config(group='crypto',
                     master_key_file=self.master_key_file,
                     )
 

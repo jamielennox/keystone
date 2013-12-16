@@ -15,81 +15,24 @@
 import base64
 import datetime
 
-import six
-
-from keystone.openstack.common.crypto import utils as cryptoutils
 from keystone.openstack.common import jsonutils
 from keystone.openstack.common import timeutils
 from keystone.tests.contrib.kds.api.v1 import base
 
-SOURCE_KEY = base64.b64decode('LDIVKc+m4uFdrzMoxIhQOQ==')
-DEST_KEY = base64.b64decode('EEGfTxGFcZiT7oPO+brs+A==')
-
 TEST_KEY = base64.b64decode('Jx5CVBcxuA86050355mTrg==')
 
-DEFAULT_SOURCE = 'home.local'
-DEFAULT_DEST = 'tests.openstack.remote'
-DEFAULT_GROUP = 'home'
-DEFAULT_NONCE = '42'
+DEFAULT_SOURCE = base.DEFAULT_SOURCE
+DEFAULT_DEST = base.DEFAULT_DEST
+
+SOURCE_KEY = base.SOURCE_KEY
+DEST_KEY = base.DEST_KEY
 
 
-class TicketTest(base.BaseTestCase):
+class HostTicketTest(base.BaseTicketTestCase):
 
-    def setUp(self):
-        super(TicketTest, self).setUp()
-
-        self.crypto = cryptoutils.SymmetricCrypto(
-            enctype=self.CONF.kds.enctype,
-            hashtype=self.CONF.kds.hashtype)
-
-    def _ticket_metadata(self, source=DEFAULT_SOURCE,
-                         destination=DEFAULT_DEST, nonce=DEFAULT_NONCE,
-                         timestamp=None, b64encode=True):
-        if not timestamp:
-            timestamp = timeutils.utcnow()
-
-        return {'source': source, 'destination': destination,
-                'nonce': nonce, 'timestamp': timestamp}
-
-    def _add_key(self, name, key=None, b64encode=True):
-        if not key:
-            if name == DEFAULT_SOURCE:
-                key = SOURCE_KEY
-            elif name == DEFAULT_DEST:
-                key = DEST_KEY
-            else:
-                raise ValueError("No default key available")
-
-        if b64encode:
-            key = base64.b64encode(key)
-
-        resp = self.put('key/%s' % name,
-                        status=200,
-                        json={'key': key}).json
-
-        return "%s:%s" % (resp['name'], resp['generation'])
-
-    def _request_ticket(self, metadata=None, signature=None,
-                        source=DEFAULT_SOURCE, destination=DEFAULT_DEST,
-                        nonce=DEFAULT_NONCE, timestamp=None,
-                        source_key=None, status=200):
-        if not metadata:
-            metadata = self._ticket_metadata(source=source,
-                                             nonce=nonce,
-                                             destination=destination,
-                                             timestamp=timestamp)
-
-        if not isinstance(metadata, six.text_type):
-            metadata = base64.b64encode(jsonutils.dumps(metadata))
-
-        if not signature:
-            if not source_key and source == DEFAULT_SOURCE:
-                source_key = SOURCE_KEY
-
-            signature = self.crypto.sign(source_key, metadata)
-
+    def _request_ticket(self, status=200, **kwargs):
         return self.post('ticket',
-                         json={'metadata': metadata, 'signature': signature},
+                         json=self._request_data(**kwargs),
                          status=status)
 
     def test_valid_ticket(self):
@@ -177,7 +120,7 @@ class TicketTest(base.BaseTestCase):
         self._add_key(DEFAULT_DEST)
 
         for attr in ['source', 'timestamp', 'destination', 'nonce']:
-            metadata = self._ticket_metadata(b64encode=False)
+            metadata = self._metadata(b64encode=False)
             del metadata[attr]
 
             self._request_ticket(metadata=metadata, status=400)

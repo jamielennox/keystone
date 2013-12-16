@@ -24,6 +24,22 @@ from keystone.openstack.common import timeutils
 
 CONF = cfg.CONF
 
+TIMEOUT_OPTS = [
+    cfg.IntOpt('timeout',
+               default=900,
+               help='Group Key expiry length. (seconds)'),
+    cfg.IntOpt('renew_time',
+               default=120,
+               help='Generate a new group key if there is an active one but '
+                    'its expiration time is less than this. (seconds)'),
+    cfg.IntOpt('additional_retrieve',
+               default=600,
+               help='Allow fetching an expired group key for this long beyond '
+                    'the key expiry (seconds)')
+]
+
+CONF.register_opts(TIMEOUT_OPTS, group='group_key')
+
 
 class StorageManager(utils.SingletonManager):
 
@@ -34,7 +50,8 @@ class StorageManager(utils.SingletonManager):
         a new one and return that for use.
 
         :param string name: Key Identifier
-        :param int generation: Key generation to retrieve. Default latest
+        :param int generation: Key generation to retrieve. Default latest.
+        :param bool group: Set to True/False to require a Group/Non-Group key.
         """
         key = dbapi.get_instance().get_key(name, generation=generation,
                                            group=group)
@@ -45,30 +62,11 @@ class StorageManager(utils.SingletonManager):
             raise exception.KeyNotFound(name=name, generation=generation)
 
         if group is not None and group != key['group']:
+            # check if a group or host key was asked for
             raise exception.KeyNotFound(name=name, generation=generation)
 
         now = timeutils.utcnow()
-        expiration = key.get('expiration')
-
-        if key['group'] and expiration and generation is not None:
-            # if you ask for a specific group key generation then you can
-            # retrieve it for a little while beyond it being expired
-            timeout = expiration + datetime.timedelta(minutes=10)
-        elif key['group'] and expiration:
-            # when we can generate a new key we don't want to use an older one
-            # that is just going to require refreshing soon
-            timeout = expiration - datetime.timedelta(minutes=2)
-        else:
-            # otherwise we either have an un-expiring group or host key which
-            # we just check against now
-            timeout = now
-
-        if expiration and expiration <= timeout:
-            if key['group']:
-                # clear the key so it will generate a new group key
-                key = {'group': True}
-            else:
-                raise exception.KeyNotFound(name=name, generation=generation)
+        key = self._check_expiration(key, generation, now)
 
         if 'key' in key:
             dec_key = crypto_manager.decrypt_key(name,
@@ -85,18 +83,49 @@ class StorageManager(utils.SingletonManager):
             raise exception.KeyNotFound(name=name, generation=generation)
 
         # generate and return a new group key
-        new_key = crypto_manager.new_key()
-        enc_key, signature = crypto_manager.encrypt_key(name, new_key)
-        expiration = now + datetime.timedelta(minutes=15)
+        expiration = now + datetime.timedelta(seconds=CONF.group_key.timeout)
+        return self._set_group_key(name, expiration=expiration)
 
-        new_gen = dbapi.get_instance().set_key(name,
-                                               enc_key=enc_key,
-                                               signature=signature,
-                                               group=True,
-                                               expiration=expiration)
+    def _check_expiration(self, key, generation, now):
+        expiration = key.get('expiration')
+        if not expiration:
+            return key
 
-        return {'key': new_key,
-                'generation': new_gen,
+        if key['group'] and generation is not None:
+            # if you ask for a specific group key generation then you can
+            # retrieve it for a little while beyond it being expired
+            grace_time = CONF.group_key.fetch_grace
+            expiration = expiration + datetime.timedelta(seconds=grace_time)
+        elif key['group']:
+            # when we can generate a new key we don't want to use an older
+            # one that is just going to require refreshing soon
+            renew_time = CONF.group_key.renew_time
+            expiration = expiration - datetime.timedelta(seconds=renew_time)
+
+        if now >= expiration:
+            if key['group']:
+                # clear the key so it will generate a new group key
+                key = {'group': True}
+            else:
+                raise exception.KeyNotFound(name=name, generation=generation)
+
+        return key
+
+    def _set_group_key(self, name, key=None, expiration=None):
+        crypto_manager = crypto.CryptoManager.get_instance()
+
+        if not key:
+            key = crypto_manager.new_key()
+
+        enc_key, signature = crypto_manager.encrypt_key(name, key)
+        generation = dbapi.get_instance().set_key(name,
+                                                  key=enc_key,
+                                                  signature=signature,
+                                                  group=True,
+                                                  expiration=expiration)
+
+        return {'key': key,
+                'generation': generation,
                 'name': name,
                 'group': True,
                 'expiration': expiration}
@@ -114,7 +143,7 @@ class StorageManager(utils.SingletonManager):
                                             group=False, expiration=expiration)
 
     def create_group(self, name):
-        dbapi.get_instance().create_group(name)
+        return dbapi.get_instance().create_group(name)
 
     def delete_group(self, name):
-        dbapi.get_instance().delete_host(name, group=True)
+        return dbapi.get_instance().delete_host(name, group=True)

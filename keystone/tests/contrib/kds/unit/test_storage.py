@@ -76,3 +76,22 @@ class StorageTests(base.BaseTestCase):
     def test_raises_for_unset_key(self):
         self.assertRaises(exception.KeyNotFound,
                           self.STORAGE.get_key, TEST_NAME)
+
+    def test_retrieve_host_key(self):
+        self.STORAGE.set_key(TEST_NAME, TEST_KEY)
+        self.assertEqual(self.STORAGE.get_key(TEST_NAME, group=None)['key'],
+                         TEST_KEY)
+        self.assertEqual(self.STORAGE.get_key(TEST_NAME, group=False)['key'],
+                         TEST_KEY)
+        self.assertRaises(exception.KeyNotFound,
+                          self.STORAGE.get_key, TEST_NAME, group=True)
+
+    def test_retrieve_group_key(self):
+        self.STORAGE._set_group_key(TEST_NAME, TEST_KEY)
+        self.assertEqual(self.STORAGE.get_key(TEST_NAME, group=None)['key'],
+                         TEST_KEY)
+        self.assertEqual(self.STORAGE.get_key(TEST_NAME, group=True)['key'],
+                         TEST_KEY)
+        self.assertRaises(exception.KeyNotFound,
+                          self.STORAGE.get_key, TEST_NAME, group=False)
+
