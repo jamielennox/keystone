@@ -17,10 +17,19 @@
 """Notifications module for OpenStack Identity Service resources"""
 
 import logging
+import socket
+
+from oslo.config import cfg
+from oslo import messaging
 
 from keystone.openstack.common import log
-from keystone.openstack.common.notifier import api as notifier_api
+# from keystone.openstack.common.notifier import api as notifier_api
 
+notifier_opts = [
+    cfg.StrOpt('default_publisher_id',
+               default=None,
+               help='Default publisher_id for outgoing notifications'),
+]
 
 LOG = log.getLogger(__name__)
 # NOTE(gyee): actions that can be notified. One must update this list whenever
@@ -28,6 +37,9 @@ LOG = log.getLogger(__name__)
 ACTIONS = frozenset(['created', 'deleted', 'updated'])
 # resource types that can be notified
 SUBSCRIBERS = {}
+
+CONF = cfg.CONF
+CONF.register_opts(notifier_opts)
 
 
 class ManagerNotificationWrapper(object):
@@ -128,6 +140,20 @@ def notify_event_callbacks(service, resource_type, operation, payload):
                 cb(service, resource_type, operation, payload)
 
 
+_notifier = None
+
+
+def _get_notifier():
+    global _notifier
+
+    if not _notifier:
+        host = CONF.default_publisher_id or socket.gethostname()
+        transport = messaging.get_transport(CONF)
+        _notifier = messaging.Notifier(transport, "identity.%s" % host)
+
+    return _notifier
+
+
 def _send_notification(operation, resource_type, resource_id):
     """Send notification to inform observers about the affected resource.
 
@@ -139,18 +165,15 @@ def _send_notification(operation, resource_type, resource_id):
     """
     context = {}
     payload = {'resource_info': resource_id}
-    service = 'identity'
-    publisher_id = notifier_api.publisher_id(service)
-    event_type = '%(service)s.%(resource_type)s.%(operation)s' % {
-        'service': service,
+    event_type = 'identity.%(resource_type)s.%(operation)s' % {
         'resource_type': resource_type,
         'operation': operation}
 
-    notify_event_callbacks(service, resource_type, operation, payload)
+    notify_event_callbacks('identity', resource_type, operation, payload)
 
     try:
-        notifier_api.notify(
-            context, publisher_id, event_type, notifier_api.INFO, payload)
+        notifier = _get_notifier()
+        notifier.info(context, event_type, payload)
     except Exception:
         LOG.exception(
             _('Failed to send %(res_id)s %(event_type)s notification'),
