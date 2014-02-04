@@ -14,11 +14,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import pecan
+import routes
+import webob
+
+from keystone import assignment
+from keystone import auth
+from keystone import catalog
 from keystone.common import extension
 from keystone.common import wsgi
 from keystone import config
+from keystone import credential
 from keystone import exception
+from keystone import identity
 from keystone.openstack.common import log
+from keystone import policy
+from keystone import trust
 
 
 LOG = log.getLogger(__name__)
@@ -64,6 +75,10 @@ def register_version(version):
     _VERSIONS.append(version)
 
 
+def version_available(version):
+    return version in _VERSIONS
+
+
 class Version(wsgi.Application):
 
     def __init__(self, version_type):
@@ -81,7 +96,7 @@ class Version(wsgi.Application):
     def _get_versions_list(self, context):
         """The list of versions is dependent on the context."""
         versions = {}
-        if 'v2.0' in _VERSIONS:
+        if version_available('v2.0'):
             versions['v2.0'] = {
                 'id': 'v2.0',
                 'status': 'stable',
@@ -114,27 +129,8 @@ class Version(wsgi.Application):
                 ]
             }
 
-        if 'v3' in _VERSIONS:
-            versions['v3'] = {
-                'id': 'v3.0',
-                'status': 'stable',
-                'updated': '2013-03-06T00:00:00Z',
-                'links': [
-                    {
-                        'rel': 'self',
-                        'href': self._get_identity_url(version='v3'),
-                    }
-                ],
-                'media-types': [
-                    {
-                        'base': 'application/json',
-                        'type': MEDIA_TYPE_JSON % 'v3'
-                    }, {
-                        'base': 'application/xml',
-                        'type': MEDIA_TYPE_XML % 'v3'
-                    }
-                ]
-            }
+        if version_available('v3'):
+            versions['v3'] = V3Controller.data()
 
         return versions
 
@@ -148,7 +144,7 @@ class Version(wsgi.Application):
 
     def get_version_v2(self, context):
         versions = self._get_versions_list(context)
-        if 'v2.0' in _VERSIONS:
+        if version_available('v2.0'):
             return wsgi.render_response(body={
                 'version': versions['v2.0']
             })
@@ -157,9 +153,99 @@ class Version(wsgi.Application):
 
     def get_version_v3(self, context):
         versions = self._get_versions_list(context)
-        if 'v3' in _VERSIONS:
+        if version_available('v3'):
             return wsgi.render_response(body={
                 'version': versions['v3']
             })
         else:
             raise exception.VersionNotFound(version='v3')
+
+
+def _copy_resp(resp):
+    """Copy a webob response from old framework into the pecan response."""
+    for attr in ['status', 'body', 'headers']:
+        setattr(pecan.response, attr, getattr(resp, attr))
+    return pecan.response
+
+
+class V3Controller(object):
+
+    TEMPLATE = {
+        'id': 'v3.0',
+        'status': 'stable',
+        'updated': '2013-03-06T00:00:00Z',
+        'links': [],
+        'media-types': [
+            {
+                'base': 'application/json',
+                'type': MEDIA_TYPE_JSON % 'v3'
+            }, {
+                'base': 'application/xml',
+                'type': MEDIA_TYPE_XML % 'v3'
+            }
+        ]
+    }
+
+    def __init__(self, conf):
+        mapper = routes.Mapper()
+
+        v3routers = []
+        for module in [assignment, auth, catalog,
+                       credential, identity, policy]:
+            module.routers.append_v3_routers(mapper, v3routers)
+
+        if CONF.trust.enabled:
+            trust.routers.append_v3_routers(mapper, v3routers)
+
+        self._router = wsgi.ComposingRouter(mapper, v3routers)
+
+    @classmethod
+    def data(cls):
+        version = cls.TEMPLATE.copy()
+
+        url = ""
+        for endpoint_type in ('public', 'admin'):
+            try:
+                url_template = CONF['%s_endpoint' % endpoint_type]
+            except KeyError:
+                continue
+
+            url = url_template % CONF
+            break
+
+        if url[-1] != '/':
+            url += '/'
+
+        version['links'] = [{'rel': 'self', 'href': '%sv3/' % url}]
+        return version
+
+    @wsgi.expose
+    def index(self):
+        if version_available('v3'):
+            return {'version': self.data()}
+
+        resp = wsgi.render_exception(exception.VersionNotFound(version='v3'))
+        return _copy_resp(resp)
+
+    @wsgi.expose
+    def _default(self, *remainder):
+        results = self._router.map.routematch(environ=pecan.request.environ)
+
+        if results:
+            # NOTE(jamielennox): this appears to violate the
+            # wsgiorg.routing_args standard but is consistent with routes
+            match, route = results
+            url = routes.util.URLGenerator(self._router.map,
+                                           pecan.request.environ)
+            pecan.request.environ['wsgiorg.routing_args'] = ((url), match)
+            pecan.request.environ['routes.route'] = route
+            pecan.request.environ['routes.url'] = url
+
+            resp = match['controller'](pecan.request)
+        else:
+            resp = wsgi.render_404(pecan.request)
+
+        if isinstance(resp, webob.Response):
+            resp = _copy_resp(resp)
+
+        return resp

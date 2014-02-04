@@ -22,6 +22,7 @@
 
 import re
 
+import pecan
 import routes.middleware
 import six
 import webob.dec
@@ -472,9 +473,7 @@ class Router(object):
         """
         match = req.environ['wsgiorg.routing_args'][1]
         if not match:
-            return render_exception(
-                exception.NotFound(_('The resource could not be found.')),
-                user_locale=req.best_match_language())
+            return render_404(req)
         app = match['controller']
         return app
 
@@ -568,6 +567,37 @@ def render_response(body=None, status=None, headers=None):
                           headerlist=headers)
 
 
+class KeystoneRenderer(object):
+    """Fake rendering everything to json.
+
+    Traditionally keystone renders everything to JSON and then leaves the
+    conversion to XML or other type to middleware. To maintain compatability
+    this renderer will encode everything that is pointed at it to json.
+    """
+
+    def __init__(self, path, extra_vars):
+        pass
+
+    def render(self, template_path, namespace):
+        return jsonutils.dumps(namespace, cls=utils.SmarterEncoder)
+
+
+def expose(f):
+    """Expose the common content types with the JSON renderer.
+
+    This prevents us having to individually expose each content type.
+    """
+    for content_type in ['application/json',
+                         'application/xml',
+                         'text/xml']:
+        template_f = pecan.expose(template='keystone:%s' % content_type,
+                                  content_type=content_type,
+                                  generic=False)
+        template_f(f)
+
+    return f
+
+
 def render_exception(error, user_locale=None):
     """Forms a WSGI response based on the current error."""
 
@@ -593,3 +623,9 @@ def render_exception(error, user_locale=None):
     return render_response(status=(error.code, error.title),
                            body=body,
                            headers=headers)
+
+
+def render_404(request):
+    return render_exception(
+        exception.NotFound(_('The resource could not be found.')),
+        user_locale=best_match_language(request))

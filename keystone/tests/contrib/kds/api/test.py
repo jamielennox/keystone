@@ -16,7 +16,8 @@ from keystone.tests.contrib.kds.api import base
 
 
 class SimpleTest(base.BaseTestCase):
+    pass
 
-    def test_simple(self):
-        resp = self.get("/")
-        self.assertEqual(resp.json['hello'], 'world')
+    # def test_simple(self):
+    #     resp = self.get("/")
+    #     self.assertEqual(resp.json['hello'], 'world')

@@ -15,6 +15,8 @@
 # under the License.
 
 import functools
+
+import pecan
 import routes
 
 from keystone import assignment
@@ -125,6 +127,8 @@ def v3_app_factory(global_conf, **local_conf):
     controllers.register_version('v3')
     conf = global_conf.copy()
     conf.update(local_conf)
+    return pecan.make_app(controllers.V3Controller(conf),
+                          custom_renderers={'keystone': wsgi.KeystoneRenderer})
     mapper = routes.Mapper()
     v3routers = []
     for module in [assignment, auth, catalog, credential, identity, policy]:
