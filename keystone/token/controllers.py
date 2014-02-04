@@ -15,6 +15,7 @@
 import json
 
 import six
+import webob
 
 from keystone.common import cms
 from keystone.common import controller
@@ -45,14 +46,20 @@ class Auth(controller.V2Controller):
         ca_file = open(CONF.signing.ca_certs, 'r')
         data = ca_file.read()
         ca_file.close()
-        return data
+        headerlist = [('Content-Type', 'text/html; charset=UTF-8')]
+        return webob.Response(body=data,
+                              status='200 OK',
+                              headerlist=headerlist)
 
     @controller.v2_deprecated
     def signing_cert(self, context, auth=None):
         cert_file = open(CONF.signing.certfile, 'r')
         data = cert_file.read()
         cert_file.close()
-        return data
+        headerlist = [('Content-Type', 'text/html; charset=UTF-8')]
+        return webob.Response(body=data,
+                              status='200 OK',
+                              headerlist=headerlist)
 
     @controller.v2_deprecated
     def authenticate(self, context, auth=None):

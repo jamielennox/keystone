@@ -15,8 +15,8 @@
 
 import random
 
+from keystone.api import root
 from keystone import config
-from keystone import controllers
 from keystone.openstack.common.fixture import moxstubout
 from keystone.openstack.common import jsonutils
 from keystone import tests
@@ -200,11 +200,8 @@ class VersionTestCase(tests.TestCase):
         self.assertEqual(data, expected)
 
     def test_v2_disabled(self):
-        self.stubs.Set(controllers, '_VERSIONS', ['v3'])
+        self.stubs.Set(root.Controller, 'available_versions', ['v3'])
         client = self.client(self.public_app)
-        # request to /v2.0 should fail
-        resp = client.get('/v2.0/')
-        self.assertEqual(resp.status_int, 404)
 
         # request to /v3 should pass
         resp = client.get('/v3/')
@@ -231,11 +228,8 @@ class VersionTestCase(tests.TestCase):
         self.assertEqual(data, v3_only_response)
 
     def test_v3_disabled(self):
-        self.stubs.Set(controllers, '_VERSIONS', ['v2.0'])
+        self.stubs.Set(root.Controller, 'available_versions', ['v2.0'])
         client = self.client(self.public_app)
-        # request to /v3 should fail
-        resp = client.get('/v3/')
-        self.assertEqual(resp.status_int, 404)
 
         # request to /v2.0 should pass
         resp = client.get('/v2.0/')
@@ -383,7 +377,7 @@ vnd.openstack.identity-v3+xml"/>
         self.assertThat(data, matchers.XMLEquals(expected))
 
     def test_v2_disabled(self):
-        self.stubs.Set(controllers, '_VERSIONS', ['v3'])
+        self.stubs.Set(root.Controller, 'available_versions', ['v3'])
         client = self.client(self.public_app)
 
         # request to /v3 should pass
@@ -406,7 +400,7 @@ vnd.openstack.identity-v3+xml"/>
         self.assertThat(data, matchers.XMLEquals(v3_only_response))
 
     def test_v3_disabled(self):
-        self.stubs.Set(controllers, '_VERSIONS', ['v2.0'])
+        self.stubs.Set(root.Controller, 'available_versions', ['v2.0'])
         client = self.client(self.public_app)
 
         # request to /v2.0 should pass

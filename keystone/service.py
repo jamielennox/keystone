@@ -15,8 +15,12 @@
 import sys
 
 import functools
-import routes
 
+import pecan
+
+from keystone.api import root
+from keystone.api import v2
+from keystone.api import v3
 from keystone import assignment
 from keystone import auth
 from keystone import catalog
@@ -24,12 +28,11 @@ from keystone.common import cache
 from keystone.common import wsgi
 from keystone import config
 from keystone.contrib import endpoint_filter
-from keystone import controllers
 from keystone import credential
+from keystone import hooks
 from keystone import identity
 from keystone.openstack.common import log
 from keystone import policy
-from keystone import routers
 from keystone import token
 from keystone import trust
 
@@ -80,61 +83,39 @@ def fail_gracefully(f):
     return wrapper
 
 
+def make_app(controller, **kwargs):
+    # NOTE(jamielennox): Reset global pecan config. Works around some strange
+    # edge cases with running two pecan apps in the same namespace in testing.
+    pecan.set_config({'app': {}}, overwrite=True)
+
+    kwargs['custom_renderers'] = {'keystone': wsgi.KeystoneRenderer}
+    kwargs.setdefault('hooks', []).append(hooks.ProcessHook())
+    return pecan.make_app(controller, **kwargs)
+
+
 @fail_gracefully
 def public_app_factory(global_conf, **local_conf):
-    controllers.register_version('v2.0')
-    conf = global_conf.copy()
-    conf.update(local_conf)
-    return wsgi.ComposingRouter(routes.Mapper(),
-                                [assignment.routers.Public(),
-                                 token.routers.Router(),
-                                 routers.VersionV2('public'),
-                                 routers.Extension(False)])
+    root.Controller.register_version('v2.0')
+    return make_app(v2.PublicController())
 
 
 @fail_gracefully
 def admin_app_factory(global_conf, **local_conf):
-    conf = global_conf.copy()
-    conf.update(local_conf)
-    return wsgi.ComposingRouter(routes.Mapper(),
-                                [identity.routers.Admin(),
-                                 assignment.routers.Admin(),
-                                    token.routers.Router(),
-                                    routers.VersionV2('admin'),
-                                    routers.Extension()])
+    root.Controller.register_version('v2.0')
+    return make_app(v2.AdminController())
 
 
 @fail_gracefully
 def public_version_app_factory(global_conf, **local_conf):
-    conf = global_conf.copy()
-    conf.update(local_conf)
-    return wsgi.ComposingRouter(routes.Mapper(),
-                                [routers.Versions('public')])
+    return make_app(root.Controller('public'))
 
 
 @fail_gracefully
 def admin_version_app_factory(global_conf, **local_conf):
-    conf = global_conf.copy()
-    conf.update(local_conf)
-    return wsgi.ComposingRouter(routes.Mapper(),
-                                [routers.Versions('admin')])
+    return make_app(root.Controller('admin'))
 
 
 @fail_gracefully
 def v3_app_factory(global_conf, **local_conf):
-    controllers.register_version('v3')
-    conf = global_conf.copy()
-    conf.update(local_conf)
-    mapper = routes.Mapper()
-    v3routers = []
-    for module in [assignment, auth, catalog, credential, identity, policy]:
-        module.routers.append_v3_routers(mapper, v3routers)
-
-    if CONF.trust.enabled:
-        trust.routers.append_v3_routers(mapper, v3routers)
-
-    # Add in the v3 version api
-    v3routers.append(routers.VersionV3('admin'))
-    v3routers.append(routers.VersionV3('public'))
-    # TODO(ayoung): put token routes here
-    return wsgi.ComposingRouter(mapper, v3routers)
+    root.Controller.register_version('v3')
+    return make_app(v3.Controller())
