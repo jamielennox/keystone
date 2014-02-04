@@ -16,6 +16,7 @@
 
 from babel import localedata
 import gettext
+import webob
 
 from keystone.common import wsgi
 from keystone import exception
@@ -36,7 +37,7 @@ class BaseWSGITest(tests.TestCase):
         super(BaseWSGITest, self).setUp()
 
     def _make_request(self, url='/'):
-        req = wsgi.Request.blank(url)
+        req = webob.Request.blank(url)
         args = {'action': 'index', 'controller': None}
         req.environ['wsgiorg.routing_args'] = [None, args]
         return req
@@ -217,8 +218,8 @@ class LocalizedResponseTest(tests.TestCase):
 
     def test_request_match_default(self):
         # The default language if no Accept-Language is provided is None
-        req = wsgi.Request.blank('/')
-        self.assertIsNone(req.best_match_language())
+        req = webob.Request.blank('/')
+        self.assertIsNone(wsgi.best_match_language(req))
 
     def test_request_match_language_expected(self):
         # If Accept-Language is a supported language, best_match_language()
@@ -226,8 +227,8 @@ class LocalizedResponseTest(tests.TestCase):
 
         self._set_expected_languages(all_locales=['it'])
 
-        req = wsgi.Request.blank('/', headers={'Accept-Language': 'it'})
-        self.assertEqual(req.best_match_language(), 'it')
+        req = webob.Request.blank('/', headers={'Accept-Language': 'it'})
+        self.assertEqual(wsgi.best_match_language(req), 'it')
 
     def test_request_match_language_unexpected(self):
         # If Accept-Language is a language we do not support,
@@ -235,8 +236,8 @@ class LocalizedResponseTest(tests.TestCase):
 
         self._set_expected_languages(all_locales=['it'])
 
-        req = wsgi.Request.blank('/', headers={'Accept-Language': 'zh'})
-        self.assertIsNone(req.best_match_language())
+        req = webob.Request.blank('/', headers={'Accept-Language': 'zh'})
+        self.assertIsNone(wsgi.best_match_language(req))
 
     def test_static_translated_string_is_Message(self):
         # Statically created message strings are Message objects so that they
