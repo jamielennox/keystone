@@ -12,21 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# Server Specific Configurations
-server = {
-    'port': 9109,
-    'host': '0.0.0.0'
-}
+from keystone.api.v3 import controller
 
-# Pecan Application Configurations
-app = {
-    'root': 'keystone.contrib.kds.api.root.RootController',
-    'modules': ['keystone.contrib.kds.api'],
-    'static_root': '%(confdir)s/public',
-    'template_path': '%(confdir)s/templates',
-    'debug': False,
-}
+Controller = controller.Controller
 
-# Custom Configurations must be in Python dictionary format::
-#
-# foo = {'bar': 'baz'}
+__all__ = [Controller]
