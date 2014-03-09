@@ -56,13 +56,6 @@
 # a different server.
 #admin_endpoint=http://localhost:%(admin_port)s/
 
-# onready allows you to send a notification when the process
-# is ready to serve For example, to have it notify using
-# systemd, one could set shell command: "onready = systemd-
-# notify --ready" or a module with notify() method: "onready =
-# keystone.common.systemd". (string value)
-#onready=<None>
-
 # enforced by optional sizelimit middleware
 # (keystone.middleware:RequestBodySizeLimiter). (integer
 # value)
