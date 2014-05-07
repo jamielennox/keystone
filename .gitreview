@@ -1,5 +1,7 @@
 [gerrit]
-host=review.openstack.org
-port=29418
-project=openstack/keystone.git
-defaultbranch=stable/icehouse
+host=code.engineering.redhat.com
+port=22
+project=keystone.git
+defaultbranch=rhos-5.0-patches
+defaultremote=rhos
+defaultrebase=0
