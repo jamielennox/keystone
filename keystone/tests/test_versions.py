@@ -308,6 +308,30 @@ class VersionTestCase(tests.TestCase):
         data = jsonutils.loads(resp.body)
         self.assertEqual(data, v2_only_response)
 
+    def _test_version(self, app_name):
+        app = self.loadapp('keystone', app_name)
+        client = self.client(app)
+        resp = client.get('/')
+        self.assertEqual(resp.status_int, 300)
+        data = jsonutils.loads(resp.body)
+        expected = VERSIONS_RESPONSE
+        for version in expected['versions']['values']:
+            if version['id'] == 'v3.0':
+                self._paste_in_port(
+                    version, 'http://localhost:%s/v3/' % CONF.public_port)
+            elif version['id'] == 'v2.0':
+                self._paste_in_port(
+                    version, 'http://localhost:%s/v2.0/' % CONF.public_port)
+        self.assertEqual(data, expected)
+
+    def test_public(self):
+        self._test_version('main')
+
+    def test_admin(self):
+        self._test_version('admin')
+
+        self._test_version('admin')
+
 
 class XmlVersionTestCase(tests.TestCase):
 

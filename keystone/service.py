@@ -96,6 +96,7 @@ def public_app_factory(global_conf, **local_conf):
 def admin_app_factory(global_conf, **local_conf):
     conf = global_conf.copy()
     conf.update(local_conf)
+    controllers.register_version('v2.0')
     return wsgi.ComposingRouter(routes.Mapper(),
                                 [identity.routers.Admin(),
                                  assignment.routers.Admin(),
