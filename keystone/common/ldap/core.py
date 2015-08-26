@@ -835,10 +835,23 @@ class LdapWrapper(object):
 
     def paged_search_s(self, dn, scope, query, attrlist=None):
         res = []
-        lc = ldap.controls.SimplePagedResultsControl(
-            controlType=ldap.LDAP_CONTROL_PAGE_OID,
-            criticality=True,
-            controlValue=(self.page_size, ''))
+        use_old_paging_api = False
+        # The API for the simple paged results control changed between
+        # python-ldap 2.3 and 2.4.  We need to detect the capabilities
+        # of the python-ldap version we are using.
+        if hasattr(ldap, 'LDAP_CONTROL_PAGE_OID'):
+            use_old_paging_api = True
+            lc = ldap.controls.SimplePagedResultsControl(
+                controlType=ldap.LDAP_CONTROL_PAGE_OID,
+                criticality=True,
+                controlValue=(self.page_size, ''))
+            page_ctrl_oid = ldap.LDAP_CONTROL_PAGE_OID
+        else:
+            lc = ldap.controls.libldap.SimplePagedResultsControl(
+                criticality=True,
+                size=self.page_size,
+                cookie='')
+            page_ctrl_oid = ldap.controls.SimplePagedResultsControl.controlType
         dn_utf8 = utf8_encode(dn)
         query_utf8 = utf8_encode(query)
         if attrlist is None:
@@ -858,14 +871,18 @@ class LdapWrapper(object):
             # Receive the data
             res.extend(rdata)
             pctrls = [c for c in serverctrls
-                      if c.controlType == ldap.LDAP_CONTROL_PAGE_OID]
+                      if c.controlType == page_ctrl_oid]
             if pctrls:
                 # LDAP server supports pagination
-                est, cookie = pctrls[0].controlValue
+                if use_old_paging_api:
+                    est, cookie = pctrls[0].controlValue
+                    lc.controlValue = (self.page_size, cookie)
+                else:
+                    cookie = lc.cookie = pctrls[0].cookie
+
                 if cookie:
                     # There is more data still on the server
                     # so we request another page
-                    lc.controlValue = (self.page_size, cookie)
                     msgid = self.conn.search_ext(dn_utf8,
                                                  scope,
                                                  query_utf8,
