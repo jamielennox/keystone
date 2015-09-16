@@ -56,6 +56,14 @@
 # a different server.
 #admin_endpoint=http://localhost:%(admin_port)s/
 
+# The number of worker processes to serve the public WSGI
+# application (integer value)
+#public_workers=1
+
+# The number of worker processes to serve the admin WSGI
+# application (integer value)
+#admin_workers=1
+
 # enforced by optional sizelimit middleware
 # (keystone.middleware:RequestBodySizeLimiter). (integer
 # value)
