@@ -467,6 +467,36 @@ class V3Controller(wsgi.Application):
         return {cls.member_name: ref}
 
     @classmethod
+    def apply_hints(cls, context, refs, hints=None):
+        # Check if there are any filters in hints that were not
+        # handled by the drivers. The driver will not have paginated or
+        # limited the output if it found there were filters it was unable to
+        # handle.
+
+        if hints is not None:
+            refs = cls.filter_by_attributes(refs, hints)
+            return cls.limit(refs, hints)
+
+        return False, refs
+
+    @classmethod
+    def render_list(cls, view, refs, hints=None):
+        """Apply hints to an object list and then render with a view.
+
+        A replacement for the following wrap_collection func, we take the ref
+        list, apply the hints and then render the list with the view.
+
+        :param view: The view to render with
+        :param refs: The list of refs to render
+        :param hints: hints to restrict the displayed objects.
+        """
+        list_limited, refs = cls.apply_hints(view.request.context_dict,
+                                             refs,
+                                             hints)
+
+        return view.list(refs, truncated=list_limited)
+
+    @classmethod
     def wrap_collection(cls, context, refs, hints=None):
         """Wrap a collection, checking for filtering and pagination.
 
@@ -483,15 +513,7 @@ class V3Controller(wsgi.Application):
                       Any filters already satisfied by managers will have been
                       removed
         """
-        # Check if there are any filters in hints that were not
-        # handled by the drivers. The driver will not have paginated or
-        # limited the output if it found there were filters it was unable to
-        # handle.
-
-        if hints is not None:
-            refs = cls.filter_by_attributes(refs, hints)
-
-        list_limited, refs = cls.limit(refs, hints)
+        list_limited, refs = cls.apply_hints(context, refs, hints)
 
         for ref in refs:
             cls.wrap_member(context, ref)
