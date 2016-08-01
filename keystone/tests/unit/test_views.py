@@ -17,7 +17,7 @@ from keystone.tests import unit
 import webob
 
 
-class SampleView(base.View):
+class SampleView(base.DictView):
 
     required_params = ['a', 'b', 'c', 'id']
     optional_params = ['x', 'y', 'z']

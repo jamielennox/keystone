@@ -1070,10 +1070,10 @@ class RestfulTestCase(unit.SQLDriverOverrides, rest.RestfulTestCase,
         self.assertIsNotNone(entity.get('blob'))
         self.assertIsNotNone(entity.get('type'))
         if ref:
-            self.assertEqual(ref['user_id'], entity['user_id'])
-            self.assertEqual(ref['blob'], entity['blob'])
-            self.assertEqual(ref['type'], entity['type'])
-            self.assertEqual(ref.get('project_id'), entity.get('project_id'))
+            self.assertEqual(ref.user_id, entity['user_id'])
+            self.assertEqual(ref.blob, entity['blob'])
+            self.assertEqual(ref.type, entity['type'])
+            self.assertEqual(ref.project_id, entity.get('project_id'))
         return entity
 
     # role validation

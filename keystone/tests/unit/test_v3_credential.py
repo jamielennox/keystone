@@ -24,6 +24,7 @@ from keystone.common import utils
 import keystone.conf
 from keystone.contrib.ec2 import controllers
 from keystone import exception
+from keystone import models
 from keystone.tests import unit
 from keystone.tests.unit import test_v3
 
@@ -40,28 +41,24 @@ class CredentialBaseTestCase(test_v3.RestfulTestCase):
         # Store the blob as a dict *not* JSON ref bug #1259584
         # This means we can test the dict->json workaround, added
         # as part of the bugfix for backwards compatibility works.
-        credential['blob'] = blob
-        credential_id = credential['id']
+        credential.blob = blob
 
         # Create direct via the DB API to avoid validation failure
-        self.credential_api.create_credential(credential_id, credential)
+        self.credential_api.create_credential(credential)
 
-        return json.dumps(blob), credential_id
+        return json.dumps(blob), credential['id']
 
 
 class CredentialTestCase(CredentialBaseTestCase):
     """Test credential CRUD."""
 
     def setUp(self):
-
         super(CredentialTestCase, self).setUp()
 
         self.credential = unit.new_credential_ref(user_id=self.user['id'],
                                                   project_id=self.project_id)
 
-        self.credential_api.create_credential(
-            self.credential['id'],
-            self.credential)
+        self.credential_api.create_credential(self.credential)
 
     def test_credential_api_delete_credentials_for_project(self):
         self.credential_api.delete_credentials_for_project(self.project_id)
@@ -87,7 +84,7 @@ class CredentialTestCase(CredentialBaseTestCase):
     def test_list_credentials_filtered_by_user_id(self):
         """Call ``GET  /credentials?user_id={user_id}``."""
         credential = unit.new_credential_ref(user_id=uuid.uuid4().hex)
-        self.credential_api.create_credential(credential['id'], credential)
+        self.credential_api.create_credential(credential)
 
         r = self.get('/credentials?user_id=%s' % self.user['id'])
         self.assertValidCredentialListResponse(r, ref=self.credential)
@@ -102,8 +99,7 @@ class CredentialTestCase(CredentialBaseTestCase):
                                                  project_id=self.project_id,
                                                  type=CRED_TYPE_EC2)
 
-        ec2_resp = self.credential_api.create_credential(
-            ec2_credential['id'], ec2_credential)
+        ec2_resp = self.credential_api.create_credential(ec2_credential)
 
         # The type cert was chosen for the same reason as ec2
         r = self.get('/credentials?type=cert')
@@ -132,12 +128,9 @@ class CredentialTestCase(CredentialBaseTestCase):
         credential_user1_cert = unit.new_credential_ref(user_id=user1_id)
         credential_user2_cert = unit.new_credential_ref(user_id=user2_id)
 
-        self.credential_api.create_credential(
-            credential_user1_ec2['id'], credential_user1_ec2)
-        self.credential_api.create_credential(
-            credential_user1_cert['id'], credential_user1_cert)
-        self.credential_api.create_credential(
-            credential_user2_cert['id'], credential_user2_cert)
+        self.credential_api.create_credential(credential_user1_ec2)
+        self.credential_api.create_credential(credential_user1_cert)
+        self.credential_api.create_credential(credential_user2_cert)
 
         r = self.get('/credentials?user_id=%s&type=ec2' % user1_id)
         self.assertValidCredentialListResponse(r, ref=credential_user1_ec2)
@@ -456,8 +449,7 @@ class TestCredentialEc2(CredentialBaseTestCase):
             user_id=self.user_id,
             project_id=self.project_id)
         non_ec2_cred['type'] = uuid.uuid4().hex
-        self.credential_api.create_credential(non_ec2_cred['id'],
-                                              non_ec2_cred)
+        self.credential_api.create_credential(non_ec2_cred)
         r = self.get(uri)
         cred_list_2 = r.result['credentials']
         # still one element because non-EC2 credentials are not returned.

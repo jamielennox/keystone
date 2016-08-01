@@ -96,12 +96,12 @@ class CredentialDriverV8(object):
     @abc.abstractmethod
     def delete_credentials_for_project(self, project_id):
         """Delete all credentials for a project."""
-        self._delete_credentials(lambda cr: cr['project_id'] == project_id)
+        self._delete_credentials(lambda cr: cr.project_id == project_id)
 
     @abc.abstractmethod
     def delete_credentials_for_user(self, user_id):
         """Delete all credentials for a user."""
-        self._delete_credentials(lambda cr: cr['user_id'] == user_id)
+        self._delete_credentials(lambda cr: cr.user_id == user_id)
 
     def _delete_credentials(self, match_fn):
         """Do the actual credential deletion work (default implementation).
@@ -113,7 +113,7 @@ class CredentialDriverV8(object):
         for cr in self.list_credentials():
             if match_fn(cr):
                 try:
-                    self.credential_api.delete_credential(cr['id'])
+                    self.credential_api.delete_credential(cr.id)
                 except exception.CredentialNotFound:
                     LOG.debug('Deletion of credential is not required: %s',
-                              cr['id'])
+                              cr.id)

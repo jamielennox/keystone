@@ -16,6 +16,7 @@ from keystone.common import driver_hints
 from keystone.common import sql
 from keystone.credential.backends import base
 from keystone import exception
+from keystone import models
 
 
 class CredentialModel(sql.ModelBase, sql.DictBase):
@@ -29,17 +30,39 @@ class CredentialModel(sql.ModelBase, sql.DictBase):
     type = sql.Column(sql.String(255), nullable=False)
     extra = sql.Column(sql.JsonBlob())
 
+    def to_model(self):
+        return models.Credential(id=self.id,
+                                 user_id=self.user_id,
+                                 project_id=self.project_id,
+                                 blob=self.blob,
+                                 type=self.type,
+                                 extras=self.extra)
+
+    def update_from_model(self, credential):
+        self.user_id = credential.user_id
+        self.type = credential.type
+        self.blob = credential.blob
+        self.project_id = credential.project_id
+        self.extra = credential.extras
+
+    @classmethod
+    def from_model(cls, credential):
+        return cls(id=credential.id,
+                   user_id=credential.user_id,
+                   project_id=credential.project_id,
+                   blob=credential.blob,
+                   type=credential.type,
+                   extra=credential.extras)
+
 
 class Credential(base.CredentialDriverV8):
 
     # credential crud
 
     @sql.handle_conflicts(conflict_type='credential')
-    def create_credential(self, credential_id, credential):
+    def create_credential(self, credential):
         with sql.session_for_write() as session:
-            ref = CredentialModel.from_dict(credential)
-            session.add(ref)
-            return ref.to_dict()
+            session.add(CredentialModel.from_model(credential))
 
     @driver_hints.truncated
     def list_credentials(self, hints):
@@ -47,7 +70,7 @@ class Credential(base.CredentialDriverV8):
             credentials = session.query(CredentialModel)
             credentials = sql.filter_limit_query(CredentialModel,
                                                  credentials, hints)
-            return [s.to_dict() for s in credentials]
+            return [s.to_model() for s in credentials]
 
     def list_credentials_for_user(self, user_id, type=None):
         with sql.session_for_read() as session:
@@ -56,7 +79,7 @@ class Credential(base.CredentialDriverV8):
             if type:
                 query = query.filter_by(type=type)
             refs = query.all()
-            return [ref.to_dict() for ref in refs]
+            return [ref.to_model() for ref in refs]
 
     def _get_credential(self, session, credential_id):
         ref = session.query(CredentialModel).get(credential_id)
@@ -66,21 +89,13 @@ class Credential(base.CredentialDriverV8):
 
     def get_credential(self, credential_id):
         with sql.session_for_read() as session:
-            return self._get_credential(session, credential_id).to_dict()
+            return self._get_credential(session, credential_id).to_model()
 
     @sql.handle_conflicts(conflict_type='credential')
-    def update_credential(self, credential_id, credential):
+    def update_credential(self, credential):
         with sql.session_for_write() as session:
-            ref = self._get_credential(session, credential_id)
-            old_dict = ref.to_dict()
-            for k in credential:
-                old_dict[k] = credential[k]
-            new_credential = CredentialModel.from_dict(old_dict)
-            for attr in CredentialModel.attributes:
-                if attr != 'id':
-                    setattr(ref, attr, getattr(new_credential, attr))
-            ref.extra = new_credential.extra
-            return ref.to_dict()
+            ref = self._get_credential(session, credential.id)
+            ref.update_from_model(credential)
 
     def delete_credential(self, credential_id):
         with sql.session_for_write() as session:

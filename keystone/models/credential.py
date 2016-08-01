@@ -10,9 +10,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from keystone.models.base import Model
-from keystone.models.credential import Credential
+from keystone.models import base
 
 
-__all__ = ('Credential',
-           'Model')
+class Credential(base.Model):
+
+    required_params = [
+        'user_id',
+        'type',
+        'blob'
+    ]
+
+    optional_params = [
+        'project_id'
+    ]

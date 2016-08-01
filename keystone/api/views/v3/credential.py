@@ -15,30 +15,24 @@ from oslo_serialization import jsonutils
 from keystone.api.views import base
 
 
-class CredentialView(base.View):
+class CredentialView(base.ModelView):
 
     member_name = 'credential'
     collection_name = 'credentials'
 
-    required_params = [
-        'id',
-        'user_id',
-        'type',
-    ]
-
-    optional_params = [
-        'project_id',
-    ]
-
     def render(self, obj):
         output = super(CredentialView, self).render(obj)
 
+        output['id'] = obj.id
+        output['user_id'] = obj.user_id
+        output['type'] = obj.type
+        output['project_id'] = obj.project_id
+
         # credentials stored via ec2tokens before the fix for #1259584
         # need json serializing, as that's the documented API format
-        blob = obj.get('blob')
+        if isinstance(obj.blob, dict):
+            output['blob'] = jsonutils.dumps(obj.blob)
+        else:
+            output['blob'] = obj.blob
 
-        if isinstance(blob, dict):
-            blob = jsonutils.dumps(blob)
-
-        output['blob'] = blob
         return output

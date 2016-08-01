@@ -23,6 +23,25 @@ from keystone.common import validation
 from keystone.credential import schema
 from keystone import exception
 from keystone.i18n import _
+from keystone.models import credential as model
+
+
+def create_model(ref):
+    ref = ref.copy()
+    kwargs = {}
+
+    try:
+        kwargs['id'] = ref.pop('id')
+        kwargs['user_id'] = ref.pop('user_id')
+        kwargs['type'] = ref.pop('type')
+        kwargs['blob'] = ref.pop('blob')
+    except KeyError:
+        raise exception.ValidationError()
+
+    kwargs['project_id'] = ref.pop('project_id', None)
+    kwargs['extras'] = ref
+
+    return model.Credential(**kwargs)
 
 
 @dependency.requires('credential_api')
@@ -67,8 +86,10 @@ class CredentialV3(controller.V3Controller):
         validation.lazy_validate(schema.credential_create, credential)
         ref = self._assign_unique_id(self._normalize_dict(credential),
                                      request.context.trust_id)
-        ref = self.credential_api.create_credential(ref['id'], ref)
-        return view.CredentialView(request).create(ref)
+
+        cred = create_model(credential)
+        cred = self.credential_api.create_credential(cred)
+        return view.CredentialView(request).create(cred)
 
     @controller.filterprotected('user_id', 'type')
     def list_credentials(self, request, filters):

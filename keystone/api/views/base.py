@@ -10,9 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import abc
 import copy
 import itertools
 
+import six
 from oslo_config import cfg
 from oslo_serialization import jsonutils
 import webob
@@ -24,10 +26,8 @@ from keystone.i18n import _
 CONF = cfg.CONF
 
 
-class View(object):
-
-    required_params = None
-    optional_params = None
+@six.add_metaclass(abc.ABCMeta)
+class BaseView(object):
 
     member_name = None
     collection_name = None
@@ -88,6 +88,7 @@ class View(object):
         # FIXME(jamielennox): we shouldn't assume v3 is mounted at /v3
         return '%s/v3/%s' % (self.host_url, self.member_path(obj).lstrip('/'))
 
+    @abc.abstractmethod
     def render(self, obj):
         """Render a single object either on its own or part of a list.
 
@@ -103,34 +104,7 @@ class View(object):
         :returns: The displayable output.
         :rtype: dict
         """
-        if self.include_extras:
-            for p in self.required_params or []:
-                if p not in obj:
-                    # do something better here
-                    raise RuntimeError()
-
-            output = copy.deepcopy(obj)
-
-        else:
-            output = {}
-
-            for p in self.required_params or []:
-                try:
-                    output[p] = obj[p]
-                except KeyError:
-                    # do something better here
-                    raise RuntimeError()
-
-            for p in self.optional_params or []:
-                try:
-                    output[p] = obj[p]
-                except KeyError:
-                    pass
-
-        links = output.setdefault('links', {})
-        links['self'] = self.member_url(obj)
-
-        return output
+        return {'links': {'self': self.member_url(obj)}}
 
     def render_json_member(self, obj, **kwargs):
         """Render the response body of a single object representation.
@@ -282,3 +256,70 @@ class View(object):
         response.body = b''
         response.status_code = 204
         return response
+
+
+class ModelView(BaseView):
+
+
+    def member_path(self, obj):
+        """The path where the given object can be found.
+
+        :param obj: The object to locate.
+        :type obj: dict
+
+        :rtype: str
+        """
+        return '%s/%s' % (self.collection_path, obj.id)
+
+    def render(self, obj):
+        output = super(ModelView, self).render(obj)
+
+        if self.include_extras:
+            output.update(obj.extras)
+
+        return output
+
+
+class DictView(BaseView):
+
+    required_params = None
+    optional_params = None
+
+    def member_path(self, obj):
+        """The path where the given object can be found.
+
+        :param obj: The object to locate.
+        :type obj: dict
+
+        :rtype: str
+        """
+        return '%s/%s' % (self.collection_path, obj['id'])
+
+    def render(self, obj):
+        output = super(DictView, self).render(obj)
+
+        if self.include_extras:
+            for p in self.required_params or []:
+                try:
+                    output[p] = obj[p]
+                except KeyError:
+                    # do something better here
+                    raise RuntimeError()
+
+            output.update(obj)
+
+        else:
+            for p in self.required_params or []:
+                try:
+                    output[p] = obj[p]
+                except KeyError:
+                    # do something better here
+                    raise RuntimeError()
+
+            for p in self.optional_params or []:
+                try:
+                    output[p] = obj[p]
+                except KeyError:
+                    pass
+
+        return output

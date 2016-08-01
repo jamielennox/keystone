@@ -48,6 +48,7 @@ from keystone.common import sql
 import keystone.conf
 from keystone import exception
 from keystone.identity.backends.ldap import common as ks_ldap
+from keystone import models
 from keystone import notifications
 from keystone.tests.unit import ksfixtures
 from keystone.version import controllers
@@ -373,7 +374,7 @@ def new_credential_ref(user_id, project_id=None, type='cert', **kwargs):
         ref['blob'] = uuid.uuid4().hex
 
     ref.update(kwargs)
-    return ref
+    return models.Credential(**ref)
 
 
 def new_cert_credential(user_id, project_id=None, blob=None, **kwargs):
