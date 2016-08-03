@@ -167,6 +167,15 @@ Enable storing issued token data to token validation cache so that first token
 validation doesn't actually cause full validation cycle.
 """))
 
+grace_window = cfg.IntOpt(
+    'grace_window',
+    default=48 * 60 * 60,
+    help=utils.fmt("""
+This controls the number of seconds that a token can be retrieved for past the
+tokens expiry. This allows long running operations to succeed.
+"""))
+
+
 GROUP_NAME = __name__.split('.')[-1]
 ALL_OPTS = [
     bind,
@@ -181,6 +190,7 @@ ALL_OPTS = [
     hash_algorithm,
     infer_roles,
     cache_on_issue,
+    grace_window,
 ]
 
 
