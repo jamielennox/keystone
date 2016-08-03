@@ -151,6 +151,23 @@ directly assigned to the token's scope, but are instead linked implicitly to
 other role assignments.
 """))
 
+grace_window = cfg.IntOpt(
+    'grace_window',
+    default=48 * 60 * 60,
+    help=utils.fmt("""
+This controls the number of seconds that a token can be retrieved for past the
+tokens expiry. This allows long running operations to succeed.
+"""))
+
+grace_window_roles = cfg.ListOpt(
+    'grace_window_roles',
+    default=['service'],
+    help=utils.fmt("""
+The roles required on the service token that allow a token to be retrieved past
+the expiry time. This operation should only be allowed to be handled by
+services.
+"""))
+
 
 GROUP_NAME = __name__.split('.')[-1]
 ALL_OPTS = [
@@ -165,6 +182,8 @@ ALL_OPTS = [
     allow_rescope_scoped_token,
     hash_algorithm,
     infer_roles,
+    grace_window,
+    grace_window_roles,
 ]
 
 
