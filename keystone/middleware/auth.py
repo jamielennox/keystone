@@ -44,7 +44,7 @@ class AuthContextMiddleware(auth_token.BaseAuthProtocol):
                                                     log=LOG,
                                                     enforce_token_bind=bind)
 
-    def fetch_token(self, token):
+    def fetch_token(self, token, **kwargs):
         try:
             return self.token_provider_api.validate_token(token)
         except exception.TokenNotFound:
